@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nexusstate": {
+      "command": "python3",
+      "args": [
+        "/usr/local/google/home/jesuscolin/brujula/bridge.py"
+      ]
+    }
+  }
+}

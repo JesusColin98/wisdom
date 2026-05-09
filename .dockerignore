@@ -1,0 +1,9 @@
+node_modules
+dist
+.gemini
+wisdom.db
+wisdom_engine
+wisdom/wisdom_engine
+*.log
+portal/node_modules
+portal/dist

@@ -1,0 +1,41 @@
+# --- OS and IDEs ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
+
+# --- Databases ---
+*.db
+*.sqlite3
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+env/
+
+# --- Node / Frontend (portal) ---
+portal/node_modules/
+portal/dist/
+portal/.eslintcache
+portal/.env
+
+# --- Go (wisdom) ---
+# Specific binaries found
+wisdom/main
+wisdom/wisdom_engine
+# Generic Go rules
+wisdom/wisdom
+*.exe
+*.test
+*.prof
+
+# --- Infrastructure / Docker ---
+# (Keeping Dockerfiles and .dockerignore as they are usually necessary)
