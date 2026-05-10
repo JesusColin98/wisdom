@@ -7,7 +7,4 @@ python-multipart
 Pillow
 numpy
 pydub
-SpeechRecognition
 websockets
-google-cloud-speech
-google-cloud-texttospeech

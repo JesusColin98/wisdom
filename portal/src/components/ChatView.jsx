@@ -119,11 +119,21 @@ const ChatView = ({ onDistill }) => {
       if (json.type === 'status') {
         if (json.content === 'agent_thinking') setIsTyping(true);
       } else if (json.type === 'message') {
-        setMessages(prev => [...prev, { 
-          role: json.role, 
-          content: json.content,
-          context: json.context || []
-        }]);
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant' && !json.isNew) {
+            return [...prev.slice(0, -1), { 
+              ...last, 
+              content: last.content + json.content,
+              context: json.context || last.context || []
+            }];
+          }
+          return [...prev, { 
+            role: json.role, 
+            content: json.content,
+            context: json.context || []
+          }];
+        });
         setIsTyping(false);
       } else if (json.type === 'interruption') {
           stopAudioPlayback();

@@ -3,19 +3,13 @@ import json
 import asyncio
 import io
 import base64
-import numpy as np
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from typing import List, Optional
 import requests
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
-from PIL import Image
-from pydub import AudioSegment
-import speech_recognition as sr
-from google.cloud import speech
-from google.cloud import texttospeech
+import websockets
 
 app = FastAPI(title="Wisdom Multimodal Agent Service")
 
@@ -26,40 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration
 WISDOM_ENGINE_URL = os.environ.get("WISDOM_ENGINE_URL", "http://localhost:8080")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    # Using Gemini 3.1 Flash Lite for low-latency real-time interaction
-    model = genai.GenerativeModel('gemini-3.1-flash-lite')
-else:
-    print("WARNING: GEMINI_API_KEY not set. Multimodal features will be disabled.")
-    model = None
-
-tts_client = texttospeech.TextToSpeechAsyncClient()
-stt_client = speech.SpeechAsyncClient()
-
-async def synthesize_speech(text: str) -> bytes:
-    try:
-        synthesis_input = texttospeech.SynthesisInput(text=text)
-        # Using Journey voice for highly realistic, humanized speech
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US",
-            name="en-US-Journey-F"
-        )
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.LINEAR16,
-            sample_rate_hertz=24000
-        )
-        response = await tts_client.synthesize_speech(
-            input=synthesis_input, voice=voice, audio_config=audio_config
-        )
-        return response.audio_content
-    except Exception as e:
-        print(f"TTS Error: {e}")
-        return None
 
 class ChatRequest(BaseModel):
     message: str
@@ -100,156 +62,128 @@ async def handle_mcp_call(tool_name: str, params: dict):
     except Exception as e: return {"error": str(e)}
     return {"error": f"Failed to execute tool {tool_name}."}
 
-async def agent_process(message: str, image: Optional[Image.Image] = None):
-    # System Prompt with SRE context
-    system_prompt = (
-        "You are Wisdom, an expert SRE AI Assistant. "
-        "You have access to a semantic knowledge graph (Cortex). "
-        "When responding, be technical, concise, and proactive."
-    )
-    
-    contents = [system_prompt]
-    if image: contents.append(image)
-    contents.append(message)
-
-    if not model:
-        return {"response": f"[Offline] {message}", "context_nodes": []}
-
-    try:
-        # Generate text response
-        response = await asyncio.to_thread(model.generate_content, contents)
-        agent_text = response.text
-
-        # Grounding with Wisdom Engine
-        headers = {}
-        token = get_id_token(WISDOM_ENGINE_URL)
-        if token: headers["Authorization"] = f"Bearer {token}"
-        
-        cortex_resp = requests.post(
-            f"{WISDOM_ENGINE_URL}/chat", 
-            json={"message": agent_text},
-            timeout=10,
-            headers=headers
-        )
-        if cortex_resp.status_code == 200:
-            return cortex_resp.json()
-        
-        return {"response": agent_text, "context_nodes": []}
-    except Exception as e:
-        return {"response": f"Error: {str(e)}", "context_nodes": []}
-
 @app.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    print("Multimodal session active")
+    print("[WISDOM-CHAT] Multimodal session active")
     
-    recognizer = sr.Recognizer()
-    audio_queue = asyncio.Queue()
-    last_image = None
+    if not GEMINI_API_KEY:
+        await websocket.send_json({"type": "error", "message": "GEMINI_API_KEY not configured on backend."})
+        await websocket.close()
+        return
+
+    # Use Gemini 2.0 Live API
+    gemini_url = f"wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key={GEMINI_API_KEY}"
     
-    async def audio_worker():
-        """Process incoming audio chunks for transcription."""
-        audio_buffer = bytearray()
-        silence_timeout = 1.5  # Process after 1.5 seconds of silence
-        last_audio_time = asyncio.get_event_loop().time()
-        
-        while True:
-            try:
-                chunk = await asyncio.wait_for(audio_queue.get(), timeout=0.5)
-                audio_buffer.extend(chunk)
-                last_audio_time = asyncio.get_event_loop().time()
-                audio_queue.task_done()
-            except asyncio.TimeoutError:
-                # If we have enough audio and silence timeout reached
-                time_since_last = asyncio.get_event_loop().time() - last_audio_time
-                if len(audio_buffer) > 16000 * 2 * 1 and time_since_last >= silence_timeout:
-                    audio_data = bytes(audio_buffer)
-                    audio_buffer.clear()  # Reset for next utterance
-                    
-                    audio = speech.RecognitionAudio(content=audio_data)
-                    config = speech.RecognitionConfig(
-                        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-                        sample_rate_hertz=16000,
-                        language_code="en-US",
-                    )
-                    try:
-                        print("Transcribing audio...")
-                        response = await stt_client.recognize(config=config, audio=audio)
-                        transcript = " ".join([r.alternatives[0].transcript for r in response.results]).strip()
-                        
-                        if transcript:
-                            print(f"User (Voice): {transcript}")
-                            # Echo user message
-                            await websocket.send_json({"type": "message", "role": "user", "content": transcript})
-                            await websocket.send_json({"type": "status", "content": "agent_thinking"})
-                            
-                            result = await agent_process(transcript, last_image)
-                            resp_text = result.get("response", "")
-                            
-                            await websocket.send_json({
-                                "type": "message",
-                                "role": "assistant",
-                                "content": resp_text,
-                                "context": result.get("context", [])
-                            })
-                            
-                            audio_bytes = await synthesize_speech(resp_text)
-                            if audio_bytes:
-                                await websocket.send_bytes(audio_bytes)
-                    except Exception as e:
-                        print(f"STT Error: {e}")
-
-    worker_task = asyncio.create_task(audio_worker())
-
     try:
-        while True:
-            data = await websocket.receive()
+        async with websockets.connect(gemini_url) as gemini_ws:
+            print("[WISDOM-CHAT] Connected to Gemini 2.0 API")
             
-            if "text" in data:
+            # Send setup message
+            setup_msg = {
+                "setup": {
+                    "model": "models/gemini-2.0-flash-exp",
+                    "systemInstruction": {
+                        "parts": [{ "text": "You are Wisdom, an expert SRE AI Assistant. You have access to a semantic knowledge graph (Cortex). Be technical, concise, and proactive. Use the tools provided when asked to investigate." }]
+                    },
+                    "generationConfig": {
+                        "responseModalities": ["AUDIO"]
+                    }
+                }
+            }
+            await gemini_ws.send(json.dumps(setup_msg))
+            
+            async def forward_to_gemini():
                 try:
-                    payload = json.loads(data["text"])
-                    if payload.get("type") == "message":
-                        message = payload["content"]
-                        await websocket.send_json({"type": "status", "content": "agent_thinking"})
-                        result = await agent_process(message, last_image)
-                        
-                        resp_text = result.get("response", "")
-                        await websocket.send_json({
-                            "type": "message",
-                            "role": "assistant",
-                            "content": resp_text,
-                            "context": result.get("context", [])
-                        })
-                        
-                        # Generate and send TTS audio
-                        audio_bytes = await synthesize_speech(resp_text)
-                        if audio_bytes:
-                            await websocket.send_bytes(audio_bytes)
+                    while True:
+                        data = await websocket.receive()
+                        if "text" in data:
+                            try:
+                                payload = json.loads(data["text"])
+                                if payload.get("type") == "message":
+                                    # Convert to Gemini format
+                                    gemini_msg = {
+                                        "clientContent": {
+                                            "turns": [{ "role": "user", "parts": [{ "text": payload["content"] }] }],
+                                            "turnComplete": True
+                                        }
+                                    }
+                                    await gemini_ws.send(json.dumps(gemini_msg))
+                            except Exception as e:
+                                print(f"[WISDOM-CHAT] Text Error: {e}")
+                        elif "bytes" in data:
+                            # Frontend sends raw PCM (Int16, 16kHz). Convert to base64.
+                            encoded = base64.b64encode(data["bytes"]).decode("utf-8")
+                            audio_msg = {
+                                "realtimeInput": {
+                                    "mediaChunks": [{
+                                        "mimeType": "audio/pcm;rate=16000",
+                                        "data": encoded
+                                    }]
+                                }
+                            }
+                            await gemini_ws.send(json.dumps(audio_msg))
+                except WebSocketDisconnect:
+                    print("[WISDOM-CHAT] Client disconnected")
                 except Exception as e:
-                    print(f"Error handling text: {e}")
-                    # Fallback for raw text
-                    await websocket.send_json({"type": "status", "content": "agent_thinking"})
-                    result = await agent_process(data["text"], last_image)
-                    resp_text = result.get("response", "")
-                    await websocket.send_json({"type": "message", "role": "assistant", "content": resp_text})
-                    audio_bytes = await synthesize_speech(resp_text)
-                    if audio_bytes:
-                        await websocket.send_bytes(audio_bytes)
+                    print(f"[WISDOM-CHAT] Error forwarding to Gemini: {e}")
             
-            elif "bytes" in data:
-                bytes_data = data["bytes"]
-                # Heuristic: Small buffers are likely audio (PCM), larger ones are images (JPEG)
-                if len(bytes_data) < 10000:
-                    await audio_queue.put(bytes_data)
-                else:
-                    try:
-                        last_image = Image.open(io.BytesIO(bytes_data))
-                    except: pass
-
-    except WebSocketDisconnect:
-        print("Session terminated")
-    finally:
-        worker_task.cancel()
+            async def forward_to_client():
+                try:
+                    while True:
+                        msg = await gemini_ws.recv()
+                        
+                        try:
+                            json_data = json.loads(msg)
+                            
+                            if "setupComplete" in json_data:
+                                await websocket.send_json({"type": "status", "content": "agent_thinking"})
+                                await websocket.send_json({"type": "message", "role": "assistant", "content": "Wisdom Online. Cortex linked."})
+                                continue
+                            
+                            if "serverContent" in json_data:
+                                content = json_data["serverContent"]
+                                
+                                if "interrupted" in content:
+                                    await websocket.send_json({"type": "interruption"})
+                                
+                                model_turn = content.get("modelTurn") or content.get("modelDraft")
+                                if model_turn and "parts" in model_turn:
+                                    for part in model_turn["parts"]:
+                                        if "text" in part:
+                                            # We send text chunks back to frontend
+                                            await websocket.send_json({
+                                                "type": "message",
+                                                "role": "assistant",
+                                                "content": part["text"]
+                                            })
+                                        if "inlineData" in part:
+                                            # Audio back to frontend (send binary frame directly after decoding)
+                                            audio_b64 = part["inlineData"]["data"]
+                                            audio_bytes = base64.b64decode(audio_b64)
+                                            await websocket.send_bytes(audio_bytes)
+                        except Exception as e:
+                            print(f"Error parsing Gemini response: {e}")
+                            
+                except websockets.exceptions.ConnectionClosed:
+                    print("[WISDOM-CHAT] Gemini connection closed")
+                except Exception as e:
+                    print(f"[WISDOM-CHAT] Error forwarding to client: {e}")
+            
+            task1 = asyncio.create_task(forward_to_gemini())
+            task2 = asyncio.create_task(forward_to_client())
+            
+            done, pending = await asyncio.wait([task1, task2], return_when=asyncio.FIRST_COMPLETED)
+            
+            for task in pending:
+                task.cancel()
+                
+    except Exception as e:
+        print(f"[WISDOM-CHAT] Fatal WebSocket Proxy Error: {e}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except:
+            pass
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

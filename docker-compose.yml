@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  wisdom-engine:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - WISDOM_PORT=8080
+      - WISDOM_DB_PATH=wisdom.db
+    volumes:
+      - wisdom_cortex:/root/
+
+  wisdom-chat:
+    build:
+      context: ./chat_service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - WISDOM_ENGINE_URL=http://wisdom-engine:8080
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    depends_on:
+      - wisdom-engine
+
+  wisdom-portal:
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+    ports:
+      - "3000:8080"
+    depends_on:
+      - wisdom-engine
+      - wisdom-chat
+
+volumes:
+  wisdom_cortex:
