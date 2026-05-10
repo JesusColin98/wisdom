@@ -2,27 +2,23 @@
 *Agent Instructions: Maintain this file as a high-signal audit trail. Perform surgical updates to minimize context usage.*
 
 ## 📋 Task Metadata
-*   **Task Objective:** Decouple core engine logic from service layers and implement native Go MCP server.
+*   **Task Objective:** Debug frontend JSON parsing error in Wisdom Portal after IAP deployment.
 *   **Target Bug:** b/___
 *   **Active CL:** cl/___
-*   **Current Phase:** Refactoring Completed
+*   **Current Phase:** Debugging Frontend
 *   **Workspace State:** Fig
 
 ## 🛠️ Dynamic Tech Stack & Dependencies
-*   **Core Deps:** Go (Wisdom Engine), Python (Chat Service), MCP Protocol (JSON-RPC), Traefik Yaegi (Interpreted Go Tools)
-*   **Key Symbols/Files:** `pkg/kernel/kernel.go`, `pkg/mcp/server.go`, `cmd/wisdom-api`, `cmd/wisdom-mcp`
+*   **Core Deps:** Go (Wisdom Engine), Python (Chat Service), React (Portal), GCP IAP, GCLB
+*   **Key Symbols/Files:** `portal/src/components/GraphView.jsx`, `chat_service/main.py`, `scripts/deploy_all.sh`
 *   **Env/Build Flags:** WISDOM_DB_PATH, PORT
 
 ## 📂 Touched Artifacts
-*   `../wisdom/pkg/kernel/kernel.go`
-*   `../wisdom/pkg/mcp/protocol.go`
-*   `../wisdom/pkg/mcp/server.go`
-*   `../wisdom/pkg/mcp/server_test.go`
-*   `../wisdom/cmd/wisdom-mcp/main.go`
-*   `../wisdom/cmd/api-server/main.go`
-*   `../wisdom/Dockerfile`
-*   `../TODO.md`
+*   `../wisdom/pkg/api/server.go` (Added /whoami)
+*   `../scripts/deploy_all.sh` (Configuring Path-based routing)
+*   `deploy_all.sh.new` (Temporary deployment script)
 *   `/usr/local/google/home/jesuscolin/brujula/chat_service/.gemini/gemini_memory.md`
+*   `/usr/local/google/home/jesuscolin/brujula/chat_service/deploy_all.sh.new`
 
 ## 🎯 Task Tracker
 *   [x] **1. Phase 1:** Implement native Go MCP in `pkg/mcp`.
@@ -30,19 +26,17 @@
 *   [x] **3. Phase 3:** Verify compilation and unit tests for both binaries.
 *   [x] **4. Infrastructure:** Automated GCLB & IAP setup in `deploy_all.sh`.
 *   [x] **5. Migration:** Configured local Gemini CLI to use the native Go MCP binary.
+*   [ ] **6. Phase 4:** Debug "Unexpected token '<'" JSON error in frontend.
 
 ## 📝 Implementation Plan
-1. Create `pkg/kernel` to encapsulate shared bootstrapping logic. (DONE)
-2. Implement MCP protocol in `pkg/mcp` supporting `recall_wisdom`, `calculate_risk`, and legacy `chat`. (DONE)
-3. Split entry points into `cmd/wisdom-api` and `cmd/wisdom-mcp`. (DONE)
-4. Update Dockerfile to target `wisdom-api`. (DONE)
-5. Update `deploy_all.sh` to configure Global Load Balancer and IAP. (DONE)
-6. Switch local MCP config (`mcp_servers.json`) to native Go. (DONE)
+1. Identify API calls in the portal source code.
+2. Verify if API requests are being redirected to IAP login page (returning HTML).
+3. Adjust routing or authentication (JWT assertion) if necessary.
 
 
 ## 🧪 Verification Strategy
-*   **Automated Tests:** `go test ./pkg/mcp/...` passed.
-*   **Build Verification:** `go build` successful for both `wisdom-api` and `wisdom-mcp`.
+*   **Browser Inspection:** Check Network tab for 302 redirects to accounts.google.com on API calls.
+*   **Logs:** Check Cloud Run and GCLB logs for rejected/redirected requests.
 
 ---
 ## ⏱️ Session Update Log
@@ -50,5 +44,6 @@
 
 *   `2026-05-10 03:30:00` | Refactoring | Created `pkg/kernel` and `pkg/mcp`. | Split binaries.
 *   `2026-05-10 03:45:00` | Completed | Refactoring finished. Binaries verified. | Presentation.
+*   `2026-05-10 04:00:00` | Debugging | Investigating "Unexpected token '<'" error. | Search API calls in portal.
 
 

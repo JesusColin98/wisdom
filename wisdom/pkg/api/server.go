@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+        "strings"
 	"time"
 
 	"github.com/google/wisdom/pkg/cerebellum"
@@ -81,7 +82,8 @@ func (s *Server) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("GET /cortex/causality", s.handleCausality)
 	mux.HandleFunc("POST /cortex/recall", s.handleRecall)
 	mux.HandleFunc("POST /cortex/upvote", s.handleUpvote)
-	mux.HandleFunc("GET /ws", s.handleWS)
+	mux.HandleFunc("GET /whoami", s.handleWhoAmI)
+        mux.HandleFunc("GET /ws", s.handleWS)
 	mux.HandleFunc("POST /config", s.handleUpdateConfig)
 
 	// Static Frontend serving
@@ -563,4 +565,24 @@ func (s *Server) sendJSON(w http.ResponseWriter, code int, payload any) {
 	if payload != nil {
 		json.NewEncoder(w).Encode(payload)
 	}
+}
+
+func (s *Server) handleWhoAmI(w http.ResponseWriter, r *http.Request) {
+        // In IAP, user email is in X-Goog-Authenticated-User-Email header
+        // Format: accounts.google.com:user@gmail.com
+        userHeader := r.Header.Get("X-Goog-Authenticated-User-Email")
+        ldap := "anonymous"
+        if userHeader != "" {
+                parts := strings.Split(userHeader, ":")
+                if len(parts) > 1 {
+                        email := parts[1]
+                        ldap = strings.Split(email, "@")[0]
+                }
+        }
+
+        s.sendJSON(w, http.StatusOK, map[string]any{
+                "ldap":     ldap,
+                "role":     "USER",
+                "is_admin": ldap == "jesuscolin",
+        })
 }
