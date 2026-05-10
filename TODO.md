@@ -7,11 +7,11 @@
 - [x] **Native Go MCP**: Implemented native Go MCP server in `pkg/mcp`, removing local Python overhead.
 - [x] **CLI Integration**: Local Gemini CLI configured to use `wisdom-mcp` directly via `wisdom.db`.
 
-## 🏗️ Phase 2: Neural Substrate & Advanced Coaching
+## 🏗️ Phase 2: Neural Substrate & Advanced Coaching (IN PROGRESS)
 Goal: Deepen the graph traversal and visual intelligence.
 
 ### 🧩 Knowledge Graph (Thalamus)
-- [ ] **Recursive Prerequisite Discovery**: Logic to traverse deep dependency chains in the graph.
+- [x] **Recursive Prerequisite Discovery**: Implemented `GetPrerequisites` in `HierarchyManager` using recursive CTEs.
 - [ ] **Cross-Cloud Sync**: Sync local `wisdom.db` with Cloud Spanner or Firestore for persistence.
 - [ ] **Tool Interpretation**: Enhance `Cerebellum` to support more complex JSON-schema for tools.
 
@@ -19,15 +19,15 @@ Goal: Deepen the graph traversal and visual intelligence.
 - [ ] **Vision Loop**: Implement JPEG frame processing in `chat_service` using Gemini 1.5 Pro.
 - [ ] **Live Session**: Enable real-time audio/video feedback loop in the Portal.
 
-## 🎨 Phase 3: Frontend UX & Aesthetics
+## 🎨 Phase 3: Frontend UX & Aesthetics (IN PROGRESS)
 ### 🧪 Portal Enhancements
-- [ ] **Stratum Visuals**: Update `GraphView` to color nodes by Stratum (`HOT` vs `COLD`).
+- [x] **Stratum Visuals**: Updated `GraphView` to color nodes by Entity Class and show Stratum status (HOT/COLD).
 - [ ] **Hierarchy Explorer**: Add "Drill Down" / "Zoom Out" using `/cortex/lineage`.
-- [ ] **Dopamine Glow**: Visual feedback for high-impact knowledge nodes.
-- [ ] **Hallucination Guard**: Highlight ungrounded text in `ChatView` with red underlines.
+- [x] **Dopamine Glow**: Visual feedback for high-impact knowledge nodes (>0.8 impact).
+- [x] **Hallucination Guard**: Added verification UI in `ChatView` with wavy red underlines for ungrounded text.
 
 ## 🔍 Findings Log
-- **2026-05-10**: **IAP SUCCESS**: IAP is now enforcing Google SSO on the Portal. No more 403 on LB URL.
+- **2026-05-10**: **IAP SUCCESS**: IAP is now enforcing Google SSO. Note: Avoid loading in frames to prevent OAuth redirect blocks.
+- **2026-05-10**: **RECURSIVE PREREQS**: Added recursive graph traversal to identify missing deep dependencies.
+- **2026-05-10**: **VISUAL ATLAS**: Enhanced `GraphView` with glowing high-impact nodes and stratum labels.
 - **2026-05-10**: **MCP NATIVE**: Verified `wisdom-mcp` is functional via stdio and JSON-RPC 2.0.
-- **2026-05-10**: **BOOTSTRAP**: Created `pkg/kernel` to unify initialization between API and MCP.
-- **2026-05-09**: **SECURITY**: Switched to per-identity bindings (`roles/run.invoker`) for SAs and Users.

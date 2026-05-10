@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { Network, Search, Info, Layers, Edit3 } from 'lucide-react';
+import { Network, Search, Info, Layers, Edit3, Flame, Snowflake, Star } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
+
+const CLASS_COLORS = {
+  'PERSON': '#a855f7',
+  'CONCEPT': '#3b82f6',
+  'ERROR_PATTERN': '#ef4444',
+  'ROLE': '#f59e0b',
+  'PATTERN': '#22c55e',
+  'default': '#64748b'
+};
 
 const GraphView = ({ namespace, onEditNode }) => {
   const { API_BASE, setLoading, setError, lastEvent } = useWisdom();
@@ -17,8 +26,8 @@ const GraphView = ({ namespace, onEditNode }) => {
     setError(null);
     try {
       const [nodesRes, edgesRes] = await Promise.all([
-        fetch(`${API_BASE}/cortex/nodes?namespace=${namespace}`),
-        fetch(`${API_BASE}/cortex/edges`)
+        fetch(\`\${API_BASE}/cortex/nodes?namespace=\${namespace}\`),
+        fetch(\`\${API_BASE}/cortex/edges\`)
       ]);
 
       if (!nodesRes.ok || !edgesRes.ok) throw new Error("Failed to sync neural nodes");
@@ -33,8 +42,11 @@ const GraphView = ({ namespace, onEditNode }) => {
         content: n.content,
         author: n.author,
         stratum: n.stratum,
-        val: n.stratum === 'HOT' ? 12 : 8,
-        color: n.stratum === 'HOT' ? '#22c55e' : '#1e40af'
+        entityClass: n.entity_class,
+        impact: n.impact_score || 0,
+        val: n.stratum === 'HOT' ? 14 : 8,
+        color: CLASS_COLORS[n.entity_class] || CLASS_COLORS.default,
+        isHighImpact: (n.impact_score || 0) > 0.8
       }));
 
       const formattedLinks = edges.map(e => ({
@@ -55,19 +67,12 @@ const GraphView = ({ namespace, onEditNode }) => {
   }, [namespace, API_BASE, setLoading, setError]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchGraphData();
-    }, 0);
-    return () => clearTimeout(timer);
+    fetchGraphData();
   }, [fetchGraphData]);
 
   useEffect(() => {
     if (lastEvent && (lastEvent.type === 'REM_CONSOLIDATED' || lastEvent.type === 'MAPPED')) {
-        console.log("Cortex updated, refreshing atlas...");
-        const timer = setTimeout(() => {
-          fetchGraphData();
-        }, 0);
-        return () => clearTimeout(timer);
+        fetchGraphData();
     }
   }, [lastEvent, fetchGraphData]);
 
@@ -83,11 +88,10 @@ const GraphView = ({ namespace, onEditNode }) => {
     if (!selectedNode) return;
     setLoading(true);
     try {
-        const res = await fetch(`${API_BASE}/cortex/lineage?id=${selectedNode.id}&direction=${direction}`);
+        const res = await fetch(\`\${API_BASE}/cortex/lineage?id=\${selectedNode.id}&direction=\${direction}\`);
         if (res.ok) {
             const lineageNodes = await res.json();
-            console.log(`Lineage ${direction}:`, lineageNodes);
-            window.alert(`Found ${lineageNodes.length} nodes in lineage ${direction}`);
+            window.alert(\`Found \${lineageNodes.length} nodes in lineage \${direction}\`);
         }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -109,7 +113,6 @@ const GraphView = ({ namespace, onEditNode }) => {
         ref={graphRef}
         graphData={data}
         nodeLabel="id"
-        nodeAutoColorBy="group"
         linkDirectionalArrowLength={3.5}
         linkDirectionalArrowRelPos={1}
         linkCurvature={0.25}
@@ -118,9 +121,17 @@ const GraphView = ({ namespace, onEditNode }) => {
         nodeCanvasObject={(node, ctx, globalScale) => {
           const label = node.id;
           const fontSize = 12/globalScale;
-          ctx.font = `${fontSize}px Inter, sans-serif`;
+          ctx.font = \`\${fontSize}px Inter, sans-serif\`;
           const textWidth = ctx.measureText(label).width;
           const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4); 
+
+          // Dopamine Glow for high impact
+          if (node.isHighImpact) {
+            ctx.shadowColor = node.color;
+            ctx.shadowBlur = 15 / globalScale;
+          } else {
+            ctx.shadowBlur = 0;
+          }
 
           ctx.fillStyle = 'rgba(13, 17, 23, 0.9)';
           ctx.beginPath();
@@ -128,8 +139,11 @@ const GraphView = ({ namespace, onEditNode }) => {
           ctx.fill();
           
           ctx.strokeStyle = node.color;
-          ctx.lineWidth = 1/globalScale;
+          ctx.lineWidth = (node.stratum === 'HOT' ? 2 : 1) / globalScale;
           ctx.stroke();
+
+          // Reset shadow for text
+          ctx.shadowBlur = 0;
 
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -164,9 +178,28 @@ const GraphView = ({ namespace, onEditNode }) => {
           
           <div className="space-y-6">
             <div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Node Identifier</span>
-              <h3 className="text-xl font-bold text-white mt-1">{selectedNode.id}</h3>
-              <p className="text-[10px] text-indigo-400 font-bold mt-1 uppercase">Author: {selectedNode.author || 'system'}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Node Identifier</span>
+                {selectedNode.stratum === 'HOT' ? (
+                    <span className="flex items-center gap-1 text-[8px] font-black bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full border border-orange-500/20 animate-pulse">
+                        <Flame size={8} /> HOT STRATUM
+                    </span>
+                ) : (
+                    <span className="flex items-center gap-1 text-[8px] font-black bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
+                        <Snowflake size={8} /> COLD STRATUM
+                    </span>
+                )}
+                {selectedNode.isHighImpact && (
+                    <span className="flex items-center gap-1 text-[8px] font-black bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full border border-yellow-500/20">
+                        <Star size={8} fill="currentColor" /> HIGH IMPACT
+                    </span>
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-white">{selectedNode.id}</h3>
+              <div className="flex gap-3 mt-1">
+                <p className="text-[10px] text-indigo-400 font-bold uppercase">Class: {selectedNode.entityClass || 'GENERAL'}</p>
+                <p className="text-[10px] text-gray-500 font-bold uppercase">Author: {selectedNode.author || 'system'}</p>
+              </div>
               
               <div className="flex gap-2 mt-4">
                 <button 
@@ -193,8 +226,8 @@ const GraphView = ({ namespace, onEditNode }) => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Centrality</span>
-                <span className="text-sm font-bold text-indigo-400">PPR: 0.85</span>
+                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Impact Score</span>
+                <span className="text-sm font-bold text-indigo-400">{(selectedNode.impact * 100).toFixed(0)}%</span>
               </div>
               <div className="p-4 bg-green-500/5 rounded-2xl border border-green-500/10">
                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Verification</span>

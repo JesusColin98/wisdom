@@ -39,3 +39,4 @@ wisdom/wisdom
 
 # --- Infrastructure / Docker ---
 # (Keeping Dockerfiles and .dockerignore as they are usually necessary)
+token.md

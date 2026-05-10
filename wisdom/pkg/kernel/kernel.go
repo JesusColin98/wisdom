@@ -26,6 +26,7 @@ type WisdomKernel struct {
 	Ingestor     *sensory.DocumentIngestor
 	Mapper       *thalamus.MapperService
 	Hierarchy    *thalamus.HierarchyManager
+	Coach        *thalamus.Coach
 }
 
 // Bootstrap initializes the entire Wisdom engine.
@@ -92,6 +93,8 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 	clustering := thalamus.NewClusteringService(storage, chat)
 	ingestor := sensory.NewDocumentIngestor(llm, storage)
 	mapper := thalamus.NewMapperService(storage, chat)
+	hierarchy := thalamus.NewHierarchyManager(storage)
+	coach := thalamus.NewCoach(storage, scheduler, hierarchy, llm)
 
 	remService := &thalamus.REMService{
 		Hippocampus: hippocampus,
@@ -105,7 +108,6 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 	classifier := thalamus.NewIntentClassifierV2(llm)
 	grepRAG := cerebellum.NewGrepRAGAgent(".")
 	identity := thalamus.NewIdentityService(storage)
-	hierarchy := thalamus.NewHierarchyManager(storage)
 	risk := thalamus.NewRiskEngine(storage)
 	sre := thalamus.NewSREAssistant(storage)
 
@@ -123,6 +125,7 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 		Ingestor:     ingestor,
 		Mapper:       mapper,
 		Hierarchy:    hierarchy,
+		Coach:        coach,
 	}, nil
 }
 

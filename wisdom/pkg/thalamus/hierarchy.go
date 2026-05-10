@@ -33,15 +33,15 @@ func (m *HierarchyManager) GetLineage(ctx context.Context, nodeID string, direct
 	}
 
 	// Recursive CTE to find all related nodes in the hierarchy
-	query := fmt.Sprintf(`
+	query := fmt.Sprintf(\`
 		WITH RECURSIVE lineage AS (
 			-- Anchor member
 			SELECT %s as id, 0 as depth
 			FROM links
 			WHERE %s = ? AND relation_type IN ('PARENT_OF', 'MEMBER_OF', 'REPORTS_TO')
-			
+
 			UNION ALL
-			
+
 			-- Recursive member
 			SELECT l.%s, lineage.depth + 1
 			FROM links l
@@ -54,11 +54,64 @@ func (m *HierarchyManager) GetLineage(ctx context.Context, nodeID string, direct
 		JOIN lineage ON n.id = lineage.id
 		GROUP BY n.id
 		ORDER BY lineage.depth ASC
-	`, targetField, linkField, targetField, linkField)
+	\`, targetField, linkField, targetField, linkField)
 
 	rows, err := m.Cortex.DB().QueryContext(ctx, query, nodeID)
 	if err != nil {
 		return nil, fmt.Errorf("lineage query failed: %w", err)
+	}
+	defer rows.Close()
+
+	var nodes []cortex.Node
+	for rows.Next() {
+		var n cortex.Node
+		var metadataRaw []byte
+		err := rows.Scan(
+			&n.ID, &n.Content, &n.EntityClass, &n.Author, &n.SourceType,
+			&n.SourceRef, &n.NamespaceID, &metadataRaw, &n.ConfidenceScore,
+			&n.CreatedAt, &n.UpdatedAt,
+		)
+		if err == nil {
+			nodes = append(nodes, n)
+		}
+	}
+
+	return nodes, nil
+}
+
+// GetPrerequisites recursively finds all prerequisites for a given node.
+func (m *HierarchyManager) GetPrerequisites(ctx context.Context, nodeID string) ([]cortex.Node, error) {
+	ctx, span := observability.Tracer.Start(ctx, "Thalamus.Hierarchy.GetPrerequisites")
+	defer span.End()
+
+	// Recursive CTE for PREREQUISITE_OF
+	// We want all nodes P such that P -> ... -> nodeID
+	query := \`
+		WITH RECURSIVE prereqs AS (
+			-- Initial prerequisites
+			SELECT source_id as id, 0 as depth
+			FROM links
+			WHERE target_id = ? AND relation_type = 'PREREQUISITE_OF'
+
+			UNION ALL
+
+			-- Recursive step
+			SELECT l.source_id, p.depth + 1
+			FROM links l
+			JOIN prereqs p ON l.target_id = p.id
+			WHERE l.relation_type = 'PREREQUISITE_OF'
+			  AND p.depth < 10
+		)
+		SELECT n.id, n.content, n.entity_class, n.author, n.source_type, n.source_ref, n.namespace_id, n.metadata, n.confidence_score, n.created_at, n.updated_at
+		FROM nodes n
+		JOIN prereqs ON n.id = prereqs.id
+		GROUP BY n.id
+		ORDER BY prereqs.depth ASC
+	\`
+
+	rows, err := m.Cortex.DB().QueryContext(ctx, query, nodeID)
+	if err != nil {
+		return nil, fmt.Errorf("prerequisites query failed: %w", err)
 	}
 	defer rows.Close()
 
