@@ -30,8 +30,8 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    # Using Gemini 3.1 Flash for low-latency real-time interaction
-    model = genai.GenerativeModel('gemini-3.1-flash')
+    # Using Gemini 3.1 Flash Lite for low-latency real-time interaction
+    model = genai.GenerativeModel('gemini-3.1-flash-lite')
 else:
     print("WARNING: GEMINI_API_KEY not set. Multimodal features will be disabled.")
     model = None
