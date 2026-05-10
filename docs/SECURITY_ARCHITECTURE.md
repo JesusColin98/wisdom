@@ -1,50 +1,37 @@
-# Wisdom Ecosystem: Security & Connectivity Architecture
+# Wisdom Project Security Configuration
 
-This document describes the implemented security architecture for the Wisdom ecosystem on Google Cloud Run, following the principle of **Least Privilege**.
+## Overview
 
-## 1. Authentication Strategy (OIDC)
+This document tracks the security configurations applied to the Wisdom project to restrict unauthorized access.
 
-Services in the ecosystem communicate using **OpenID Connect (OIDC)** tokens. This ensures that endpoints remain private and only authorized identities can invoke them.
+## Identity-Aware Proxy (IAP) Implementation
 
-### Implementation in Python (Chat Agent)
-The Python Chat Agent fetches an identity token from the Google Cloud Metadata Server:
-```python
-def get_id_token(audience: str):
-    metadata_url = f"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience={audience}"
-    headers = {"Metadata-Flavor": "Google"}
-    resp = requests.get(metadata_url, headers=headers)
-    return resp.text
-```
-This token is then passed in the `Authorization: Bearer <token>` header for all requests to the Wisdom Engine.
+To prevent unauthorized access (such as the suspicious IP interactions detected on `2026-05-10`), we have implemented Google Cloud Identity-Aware Proxy (IAP) on the Global External Load Balancer.
 
-## 2. Identity and Access Management (IAM)
+### Changes Made
 
-We avoid using `allUsers` to comply with organizational policies (Domain Restricted Sharing). Instead, we use specific identity bindings.
+1.  **Removed Public Cloud Run Access:**
+    *   Removed `allUsers` from the `roles/run.invoker` policy on the `wisdom-portal` Cloud Run service.
+    *   Explicitly granted `roles/run.invoker` to:
+        *   `jealcovi98@gmail.com`
+        *   `jesuscolin2025@gmail.com`
+    *   *Note: The backend services (`wisdom-chat-agent`, `wisdom-engine`) currently still have `allUsers` invoke permissions at the Cloud Run level, relying on the Load Balancer to filter traffic. For defense-in-depth, these should also be restricted in the future to only allow internal traffic or the Load Balancer service account.*
 
-### Service-to-Service
-- **Identity:** `nexusstate-sa@jesus-mvp.iam.gserviceaccount.com` (Runtime Service Account)
-- **Permission:** `roles/run.invoker` on the `wisdom-engine` service.
-- **Result:** The Chat Agent can call the Engine, but the Engine is not public.
+2.  **Enabled IAP on Load Balancer Backends:**
+    *   Enabled IAP on the following backend services:
+        *   `wisdom-portal-backend`
+        *   `wisdom-chat-agent-backend`
+        *   `wisdom-engine-backend`
 
-### User-to-Service
-- **Identity:** User LDAP (e.g., `jesuscolin@google.com`)
-- **Permission:** `roles/run.invoker` on `wisdom-portal` and `wisdom-chat-agent`.
-- **Result:** Only the authorized user can access the frontend and the agent endpoint.
+3.  **Configured IAP Access Policies:**
+    *   Granted the `roles/iap.httpsResourceAccessor` role to allow access *only* to the authorized users on all three backends:
+        *   `jealcovi98@gmail.com`
+        *   `jesuscolin2025@gmail.com`
 
-## 3. Automated Deployment
+### Pending Configuration
 
-The `scripts/deploy_all.sh` script handles the secure configuration automatically:
-1. Deploys services with `--no-allow-unauthenticated`.
-2. Resolves the current user identity.
-3. Applies the necessary IAM policy bindings.
+The IAP setup is currently incomplete because it requires an **OAuth Client ID and Secret** to handle the Google Sign-In redirection. This must be configured manually in the GCP Console.
 
-## 4. Root Cause Analysis of Previous Failures
+### Next Steps for OAuth Setup
 
-| Symptom | Root Cause | Resolution |
-| :--- | :--- | :--- |
-| `Setting IAM policy failed` | Domain Restricted Sharing policy blocked `allUsers`. | Used specific IAM bindings for SA and User. |
-| Container failed to start | `IndentationError` and literal `...` in `main.py`. | Fixed Python syntax and cleaned code block. |
-| 403 Forbidden | Request missing valid OIDC token. | Integrated OIDC token retrieval in `handle_mcp_call`. |
-
----
-*Maintained by Gemini CLI for project Brujula.*
+(See conversation for instructions on generating the OAuth Client ID and Secret).
