@@ -98,7 +98,11 @@ function Build-And-Push($name, $contextDir, $configPath, $substitutions) {
         $subsString += ",$substitutions"
     }
 
-    gcloud builds submit $contextDir --config $configPath --substitutions $subsString --project $PROJECT_ID | Out-Host
+    gcloud builds submit $contextDir `
+        --config $configPath `
+        --service-account "projects/$PROJECT_ID/serviceAccounts/cloud-run-build-sa@$PROJECT_ID.iam.gserviceaccount.com" `
+        --substitutions $subsString `
+        --project $PROJECT_ID | Out-Host
     return $image
 }
 

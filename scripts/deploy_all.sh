@@ -118,6 +118,7 @@ build_and_push() {
     echo "🏗️  Building $name..."
     gcloud builds submit "$context_dir" \
         --config "$config" \
+        --service-account "projects/$PROJECT_ID/serviceAccounts/cloud-run-build-sa@$PROJECT_ID.iam.gserviceaccount.com" \
         --substitutions "_IMAGE_TAG=$image,$subs" \
         --project "$PROJECT_ID"
     

@@ -16,11 +16,11 @@ echo "☁️ Starting Unified Cloud Run Deployment for Project Wisdom..."
 echo "🏗️ Building Unified Docker image with Cloud Build..."
 # We use a custom service account and an explicit staging bucket to avoid dependency on the broken default setup.
 gcloud builds submit \
-    --config brujula/wisdom/cloudbuild.yaml \
+    --config wisdom/cloudbuild.yaml \
     --service-account "projects/$PROJECT_ID/serviceAccounts/cloud-run-build-sa@$PROJECT_ID.iam.gserviceaccount.com" \
     --gcs-source-staging-dir "gs://wisdom-build-jesus-mvp/source" \
     --substitutions "_IMAGE_TAG=$IMAGE_TAG" \
-    brujula/wisdom/
+    wisdom/
 
 # 2. Deploy Engine to Cloud Run
 # We use the existing nexusstate-sa which has established permissions.
@@ -49,11 +49,11 @@ PORTAL_IMAGE="gcr.io/$PROJECT_ID/$PORTAL_SERVICE:latest"
 
 echo "🏗️ Building Wisdom Portal with Cloud Build..."
 gcloud builds submit \
-    --config brujula/portal/cloudbuild.yaml \
+    --config portal/cloudbuild.yaml \
     --service-account "projects/$PROJECT_ID/serviceAccounts/cloud-run-build-sa@$PROJECT_ID.iam.gserviceaccount.com" \
     --gcs-source-staging-dir "gs://wisdom-build-jesus-mvp/source" \
     --substitutions "_IMAGE_TAG=$PORTAL_IMAGE,_ENGINE_URL=$ENGINE_URL,_WS_URL=$WS_URL" \
-    brujula/portal/
+    portal/
 
 echo "🚀 Deploying Wisdom Portal to Cloud Run..."
 gcloud run deploy $PORTAL_SERVICE \
