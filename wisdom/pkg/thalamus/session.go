@@ -15,9 +15,10 @@ type Session struct {
 
 // Context represents the aggregated context for a session.
 type Context struct {
-	Session *Session
-	Wisdom  []string // Placeholder for nodes from Cortex
-	Budget  int      // Token budget for this context
+	Session    *Session
+	Wisdom     []string
+	Budget     int
+	Strictness Strictness
 }
 
 // NewSession creates a new session with defaults.

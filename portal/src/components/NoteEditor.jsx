@@ -4,18 +4,18 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { Save, FileText, Link, Sparkles, ArrowLeft, CheckCircle } from 'lucide-react';
+import { useWisdom } from '../context/WisdomContext';
 
 const NoteEditor = ({ initialNode, onBack }) => {
+  const { API_BASE, user } = useWisdom();
   const [content, setContent] = useState(initialNode?.content || '# New Wisdom Note\n\nType your SRE observations here. Use [[Wiki-Links]] to connect ideas.');
   const [id, setId] = useState(initialNode?.id || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
 
-  const API_BASE = "";
-
   useEffect(() => {
     if (initialNode) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setContent(prev => {
             if (prev !== initialNode.content) return initialNode.content;
             return prev;
@@ -25,6 +25,7 @@ const NoteEditor = ({ initialNode, onBack }) => {
             return prev;
         });
       }, 0);
+      return () => clearTimeout(timer);
     }
   }, [initialNode]);
 
@@ -38,7 +39,7 @@ const NoteEditor = ({ initialNode, onBack }) => {
         body: JSON.stringify({
           id: id || `note-${Date.now()}`,
           content: content,
-          author: 'jesuscolin', // Hardcoded for prototype
+          author: user.ldap,
           namespace_id: 'ns-engineering'
         })
       });
@@ -143,7 +144,7 @@ const NoteEditor = ({ initialNode, onBack }) => {
           <span>Markdown GFM enabled</span>
         </div>
         <div>
-          jesuscolin@google.com • L7_ADMIN
+          {user.ldap}@google.com • {user.is_admin ? 'L7_ADMIN' : 'STANDARD_USER'}
         </div>
       </div>
     </div>

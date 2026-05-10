@@ -1,29 +1,15 @@
 steps:
-  # Build the container image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'us-central1-docker.pkg.dev/jesus-mvp/nexusstate-repo/nexusstate-portal', '.']
-  
-  # Push the container image to Artifact Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'us-central1-docker.pkg.dev/jesus-mvp/nexusstate-repo/nexusstate-portal']
-
-  # Deploy container image to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'nexusstate-portal'
-      - '--image'
-      - 'us-central1-docker.pkg.dev/jesus-mvp/nexusstate-repo/nexusstate-portal'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['install']
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['run', 'build']
+  env:
+  - 'VITE_ENGINE_URL=${_ENGINE_URL}'
+  - 'VITE_WS_URL=${_WS_URL}'
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', '${_IMAGE_TAG}', '.']
 images:
-  - 'us-central1-docker.pkg.dev/jesus-mvp/nexusstate-repo/nexusstate-portal'
-
+- '${_IMAGE_TAG}'
 options:
   logging: CLOUD_LOGGING_ONLY
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET

@@ -10,9 +10,25 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 var Tracer trace.Tracer = otel.Tracer("wisdom-engine")
+
+// AttrString creates a string attribute.
+func AttrString(key, value string) attribute.KeyValue {
+	return attribute.String(key, value)
+}
+
+// AttrInt creates an int attribute.
+func AttrInt(key string, value int) attribute.KeyValue {
+	return attribute.Int(key, value)
+}
+
+// AttrFloat64 creates a float64 attribute.
+func AttrFloat64(key string, value float64) attribute.KeyValue {
+	return attribute.Float64(key, value)
+}
 
 // InitTracer initializes OpenTelemetry tracing with a Stdout exporter.
 func InitTracer() func(context.Context) error {

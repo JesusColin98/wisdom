@@ -37,6 +37,27 @@ func (p *VertexProvider) Complete(ctx context.Context, prompt string) (string, e
 	return "", fmt.Errorf("unexpected part type")
 }
 
+func (p *VertexProvider) IngestDocument(ctx context.Context, data []byte, mimeType string) (string, error) {
+	prompt := `You are an expert engineering assistant. Analyze the provided document (PDF, Image, or Office file) and extract:
+1. UNIVERSAL TRUTHS: Core facts that don't change.
+2. ENTITIES: People, systems, services, or protocols mentioned.
+3. RELATIONSHIPS: How these entities interact.
+4. HISTORICAL CONTEXT: Timelines or version changes.
+
+Format your response as a detailed technical summary with clear sections.`
+	resp, err := p.model.GenerateContent(ctx, genai.Blob{MIMEType: mimeType, Data: data}, genai.Text(prompt))
+	if err != nil {
+		return "", err
+	}
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no content in response")
+	}
+	if part, ok := resp.Candidates[0].Content.Parts[0].(genai.Text); ok {
+		return string(part), nil
+	}
+	return "", fmt.Errorf("unexpected part type")
+}
+
 func (p *VertexProvider) Embed(ctx context.Context, text string) ([]float32, error) {
 	// If the GenAI SDK doesn't support EmbeddingModel directly in this version,
 	// we use the EmbeddingModel from the aiplatform package or a fallback.

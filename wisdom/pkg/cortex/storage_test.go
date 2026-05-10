@@ -27,9 +27,20 @@ CREATE TABLE IF NOT EXISTS nodes (
     namespace_id TEXT NOT NULL,
     metadata JSON DEFAULT '{}',
     confidence_score REAL DEFAULT 0.8,
+    impact_score REAL DEFAULT 0.0,
+    stratum TEXT NOT NULL DEFAULT 'HOT',
+    source_mime_type TEXT DEFAULT 'text/plain',
+    external_links JSON DEFAULT '[]',
+    superseded_by_id TEXT,
+    valid_from TIMESTAMP,
+    valid_until TIMESTAMP,
+    repetition_count INTEGER DEFAULT 0,
+    easiness_factor REAL DEFAULT 2.5,
+    next_review_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (namespace_id) REFERENCES namespaces(id)
+    FOREIGN KEY (namespace_id) REFERENCES namespaces(id),
+    FOREIGN KEY (superseded_by_id) REFERENCES nodes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS links (
@@ -39,8 +50,8 @@ CREATE TABLE IF NOT EXISTS links (
     weight REAL DEFAULT 1.0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (source_id, target_id, relation_type),
-    FOREIGN KEY (source_id) REFERENCES nodes(id),
-    FOREIGN KEY (target_id) REFERENCES nodes(id)
+    FOREIGN KEY (source_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS vectors (
@@ -48,7 +59,7 @@ CREATE TABLE IF NOT EXISTS vectors (
     embedding BLOB NOT NULL,
     model_version TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (node_id) REFERENCES nodes(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS node_history (
@@ -56,15 +67,19 @@ CREATE TABLE IF NOT EXISTS node_history (
     node_id TEXT NOT NULL,
     content TEXT NOT NULL,
     metadata JSON,
+    external_links JSON,
+    impact_score REAL,
+    stratum TEXT,
+    source_mime_type TEXT,
     version_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (node_id) REFERENCES nodes(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER IF NOT EXISTS archive_node_version
 BEFORE UPDATE ON nodes
 BEGIN
-    INSERT INTO node_history (node_id, content, metadata)
-    VALUES (OLD.id, OLD.content, OLD.metadata);
+    INSERT INTO node_history (node_id, content, metadata, external_links, impact_score, stratum, source_mime_type)
+    VALUES (OLD.id, OLD.content, OLD.metadata, OLD.external_links, OLD.impact_score, OLD.stratum, OLD.source_mime_type);
 END;
 `
 

@@ -91,26 +91,21 @@ func TestThalamusOrchestration(t *testing.T) {
 	sessionID := "sess-123"
 	cache.PutSession(thalamus.NewSession(sessionID, "user"))
 
-	orch := thalamus.NewOrchestrator(cx, cache)
+	orch := thalamus.NewOrchestrator(cx, cache, nil, nil, nil, nil, nil, nil, nil, nil)
 
-	// Test Aggregation with Token Budgeting
-	context, err := orch.Recall(ctx, sessionID, []string{"node-1"}, 150) // Budget allows only 1 node (~100 tokens)
+	// Test Aggregation with Token Budgeting (Low Uncertainty -> LowCostMode)
+	cognition, err := orch.Recall(ctx, sessionID, "query", []string{"node-1"}, 150, 0.2)
 	if err != nil {
 		t.Fatalf("aggregation failed: %v", err)
 	}
 
-	t.Logf("Aggregated wisdom count: %d", len(context.Wisdom))
-	for i, w := range context.Wisdom {
-		t.Logf("  Node %d: %s", i, w)
+	if len(cognition.Wisdom) != 1 {
+		t.Errorf("expected 1 node within budget, got %d", len(cognition.Wisdom))
 	}
 
-	if len(context.Wisdom) != 1 {
-		t.Errorf("expected 1 node within budget, got %d", len(context.Wisdom))
-	}
-
-	// Test Aggregation with higher budget
-	context, _ = orch.Recall(ctx, sessionID, []string{"node-1"}, 300)
-	if len(context.Wisdom) != 2 {
-		t.Errorf("expected 2 nodes within budget, got %d", len(context.Wisdom))
+	// Test Aggregation with higher budget and high uncertainty (Deep Retrieval)
+	cognition, _ = orch.Recall(ctx, sessionID, "query", []string{"node-1"}, 300, 0.8)
+	if len(cognition.Wisdom) != 2 {
+		t.Errorf("expected 2 nodes within budget, got %d", len(cognition.Wisdom))
 	}
 }

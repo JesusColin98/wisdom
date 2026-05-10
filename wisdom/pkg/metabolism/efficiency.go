@@ -6,6 +6,18 @@ type EfficiencyReport struct {
 	MetabolicRate float64
 	TotalTokens   int
 	SignalUnits   int
+	HealthStatus  string // GREEN, YELLOW, RED
+}
+
+// GetHealthStatus determines health based on TSR.
+func (r EfficiencyReport) GetHealthStatus() string {
+	if r.TSR > 0.8 {
+		return "GREEN"
+	}
+	if r.TSR > 0.5 {
+		return "YELLOW"
+	}
+	return "RED"
 }
 
 // CalculateTSR computes the Token-to-Signal Ratio.

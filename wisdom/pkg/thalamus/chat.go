@@ -21,6 +21,8 @@ type Chat struct {
 	LLM cerebellum.LLMProvider
 	// Hippocampus manages transient session memory.
 	Hippocampus *Hippocampus
+	// Orchestrator handles deep context retrieval and refinement.
+	Orchestrator *Orchestrator
 }
 
 // Reason processes a query and returns a cognitive map of how nodes relate to it.
@@ -90,7 +92,7 @@ Does the evidence support, contradict, or is it neutral to the assertion? Return
 // Ask processes a user query, retrieves relevant context from the Cortex,
 // and returns a grounded response from the LLM.
 // It returns the generated response, the context nodes used for grounding, and any error.
-func (c *Chat) Ask(ctx context.Context, userID string, message string) (string, []cortex.Node, error) {
+func (c *Chat) Ask(ctx context.Context, userID string, message string) (string, []string, error) {
 	ctx, span := observability.Tracer.Start(ctx, "Thalamus.Ask",
 		trace.WithAttributes(
 			attribute.String("user_id", userID),
@@ -101,21 +103,21 @@ func (c *Chat) Ask(ctx context.Context, userID string, message string) (string, 
 	// 0. Record user query in Hippocampus
 	c.Hippocampus.Record(ctx, userID, Interaction{Role: "user", Content: message})
 
-	// 1. Search for relevant context nodes in the Cortex.
-	// ... rest of method ...
-	nodes, err := c.Storage.SearchNodes(ctx, message)
+	// 1. Deep Recall via Orchestrator (Phase 2)
+	// We use the message as a seed for semantic discovery
+	cognition, err := c.Orchestrator.Recall(ctx, userID, message, []string{message}, 2000, 0.5)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to search nodes: %w", err)
+		return "", nil, fmt.Errorf("recall failed: %w", err)
 	}
 
 	// 2. Construct a grounded prompt.
 	var contextBuilder strings.Builder
-	for _, node := range nodes {
-		contextBuilder.WriteString(fmt.Sprintf("%s\n", node.Content))
+	for _, w := range cognition.Wisdom {
+		contextBuilder.WriteString(fmt.Sprintf("%s\n", w))
 	}
 
-	prompt := fmt.Sprintf(`You are Wisdom, a Cognitive SRE Engine.
-Relevant context nodes from the Cortex:
+	prompt := fmt.Sprintf(`You are Wisdom, a Cognitive Memory Substrate.
+Retrieved Context:
 %s
 User Query: %s`, contextBuilder.String(), message)
 
@@ -125,8 +127,25 @@ User Query: %s`, contextBuilder.String(), message)
 		return "", nil, fmt.Errorf("llm completion failed: %w", err)
 	}
 
+	// 3.1 SCG-Mem Hallucination Guardrail (Phase 2 SOTA)
+	grounded, ungrounded := c.Storage.GetTrie().ValidateSentence(response)
+	
+	// If strictness is STRICT, treat ungrounded terms as high-risk
+	threshold := 5
+	if cognition.Strictness == StrictRule {
+		threshold = 1 // Zero tolerance for ungrounded technical terms in strict mode
+	}
+
+	if len(ungrounded) > threshold {
+		observability.Logger.Warn("SCG-Mem Hallucination Warning", "strictness", cognition.Strictness, "ungrounded_terms", ungrounded)
+		if cognition.Strictness == StrictRule {
+			response = fmt.Sprintf("⚠️ [STRICT MODE WARNING] The following terms could not be verified against the knowledge base: %s\n\n%s", strings.Join(ungrounded, ", "), response)
+		}
+	}
+	observability.Logger.Info("SCG-Mem Validation", "strictness", cognition.Strictness, "grounded_words", grounded, "ungrounded_count", len(ungrounded))
+
 	// 4. Record assistant response in Hippocampus
 	c.Hippocampus.Record(ctx, userID, Interaction{Role: "assistant", Content: response})
 
-	return response, nodes, nil
+	return response, cognition.Wisdom, nil
 }

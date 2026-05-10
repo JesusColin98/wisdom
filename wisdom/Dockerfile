@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN go build -o wisdom_engine cmd/wisdom/main.go
+RUN go build -o wisdom-api cmd/wisdom-api/main.go
 
 # Final stage
 FROM alpine:latest
@@ -23,7 +23,7 @@ RUN apk add --no-cache sqlite-libs
 WORKDIR /root/
 
 # Copy binary and assets
-COPY --from=builder /app/wisdom_engine .
+COPY --from=builder /app/wisdom-api .
 COPY --from=builder /app/pkg/cortex/schema.sql ./pkg/cortex/schema.sql
 
 # Expose API port
@@ -33,4 +33,4 @@ EXPOSE 8080
 ENV WISDOM_PORT=8080
 ENV WISDOM_DB_PATH=wisdom.db
 
-CMD ["./wisdom_engine"]
+CMD ["./wisdom-api"]

@@ -4,13 +4,14 @@ import { Network, Search, Info, Layers, Edit3 } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
 const GraphView = ({ namespace, onEditNode }) => {
-  const { API_BASE, setLoading, setError } = useWisdom();
+  const { API_BASE, setLoading, setError, lastEvent } = useWisdom();
   const [data, setData] = useState({ nodes: [], links: [] });
   const [internalLoading, setInternalLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
   const graphRef = useRef();
 
   const fetchGraphData = useCallback(async () => {
+    await Promise.resolve();
     setInternalLoading(true);
     setLoading(true);
     setError(null);
@@ -31,8 +32,9 @@ const GraphView = ({ namespace, onEditNode }) => {
         name: n.id,
         content: n.content,
         author: n.author,
-        val: 10,
-        color: n.id.includes('err') ? '#ef4444' : '#6366f1'
+        stratum: n.stratum,
+        val: n.stratum === 'HOT' ? 12 : 8,
+        color: n.stratum === 'HOT' ? '#22c55e' : '#1e40af'
       }));
 
       const formattedLinks = edges.map(e => ({
@@ -53,8 +55,21 @@ const GraphView = ({ namespace, onEditNode }) => {
   }, [namespace, API_BASE, setLoading, setError]);
 
   useEffect(() => {
-    fetchGraphData();
+    const timer = setTimeout(() => {
+      fetchGraphData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchGraphData]);
+
+  useEffect(() => {
+    if (lastEvent && (lastEvent.type === 'REM_CONSOLIDATED' || lastEvent.type === 'MAPPED')) {
+        console.log("Cortex updated, refreshing atlas...");
+        const timer = setTimeout(() => {
+          fetchGraphData();
+        }, 0);
+        return () => clearTimeout(timer);
+    }
+  }, [lastEvent, fetchGraphData]);
 
   const handleNodeClick = node => {
     setSelectedNode(node);
@@ -62,6 +77,20 @@ const GraphView = ({ namespace, onEditNode }) => {
         graphRef.current.centerAt(node.x, node.y, 1000);
         graphRef.current.zoom(3, 1000);
     }
+  };
+
+  const handleLineage = async (direction) => {
+    if (!selectedNode) return;
+    setLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/cortex/lineage?id=${selectedNode.id}&direction=${direction}`);
+        if (res.ok) {
+            const lineageNodes = await res.json();
+            console.log(`Lineage ${direction}:`, lineageNodes);
+            window.alert(`Found ${lineageNodes.length} nodes in lineage ${direction}`);
+        }
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -138,6 +167,21 @@ const GraphView = ({ namespace, onEditNode }) => {
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Node Identifier</span>
               <h3 className="text-xl font-bold text-white mt-1">{selectedNode.id}</h3>
               <p className="text-[10px] text-indigo-400 font-bold mt-1 uppercase">Author: {selectedNode.author || 'system'}</p>
+              
+              <div className="flex gap-2 mt-4">
+                <button 
+                    onClick={() => handleLineage('UP')}
+                    className="flex-1 py-2 bg-gray-800 border border-gray-700 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all"
+                >
+                    Zoom Out (UP)
+                </button>
+                <button 
+                    onClick={() => handleLineage('DOWN')}
+                    className="flex-1 py-2 bg-gray-800 border border-gray-700 rounded-xl text-[9px] font-black uppercase hover:bg-indigo-500/10 hover:border-indigo-500/30 transition-all"
+                >
+                    Drill Down (DOWN)
+                </button>
+              </div>
             </div>
 
             <div>

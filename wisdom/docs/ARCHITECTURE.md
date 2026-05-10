@@ -1,24 +1,28 @@
-# Project Wisdom Architecture
+# Project Wisdom: The Knowledge Runtime
 
 ## Overview
-Wisdom is a high-performance Cognitive SRE Engine written in Go. It is designed to replace the legacy Python-based `nexusstate` substrate with a more parallel, observable, and resilient architecture. It follows a biological metaphor for its component organization.
+Wisdom is a high-performance **Knowledge Runtime** written in Go. Moving beyond static retrieval-augmented generation, it implements a dynamic, self-evolving system that orchestrates topological graph reasoning, linear state-space modeling, and neural-socratic dialogue. It follows a biological metaphor for its component organization, now optimized for the May 2026 State-of-the-Art.
 
-## Scientific Philosophy: Biological Engineering
-Project Wisdom is not just a software system; it is a **Cognitive Architecture** grounded in three scientific pillars:
+## Scientific Philosophy: Neuro-Architectural Engineering
+Project Wisdom is a **Cognitive Architecture** grounded in four scientific pillars:
 
-### 1. Neurobiology: The Thalamic Gate
-Just as the biological Thalamus filters sensory information before it reaches the cerebral cortex, Wisdom implements **Thalamic Gating**. By strictly validating inputs and filtering "background noise" (logs/metrics) through high-signal summaries, the system prevents "Context Overflow", ensuring the Gemini CLI (Prefrontal Cortex) only processes what is vital.
+### 1. Neurobiology: Neural-Socratic Gating
+Just as the biological Thalamus dynamically filters and modulates information based on cortical feedback, Wisdom's **Thalamic Gate** implements **Neural-Socratic Graph Dialogue**. Retrieval is not a one-shot operation but an iterative loop where the system identifies knowledge gaps and issues targeted diagnostic messages ($\pi_{map}$) to refine the retrieval space based on model uncertainty ($\sigma$).
 
-### 2. Psychology: Synaptic Plasticity & REM Cycles
-Knowledge in SRE is not static. Wisdom follows the principle of **Synaptic Plasticity**:
-- **Learning:** Every session is a period of "Active Learning" where facts are gathered in the **Hippocampus**.
-- **Consolidation:** The **REM Cycle** (Rapid Evidence Mapping) is our technical equivalent of sleep. It distills transient session data into "Universal Truths" (Synapses) within the **Cortex**.
-- **Forgetting:** Instead of crude deletion, Wisdom uses **Synaptic Layering**. Cold knowledge is stratified into history, mimicking how the human brain prioritizes recent, high-utility information while keeping long-term memories in deeper layers.
+### 2. Global Workspace Theory: Information Broadcasting
+Wisdom implements **Global Workspace Broadcasting**, where specialized processes (vector search, path enumeration, etc.) compete for access to a limited-capacity "global workspace". Rhythmic broadcasting, mimicking **10 Hz alpha oscillations**, synchronizes retrieval with reasoning turns ("Thinking in Documents"), ensuring context is injected only when behaviorally relevant.
 
-### 3. Biology: Metabolic Homoeostasis
-A cognitive engine must be efficient to survive. Project Wisdom treats tokens and compute as **Metabolic Currency**.
-- **TSR (Token-to-Signal Ratio):** Measures the nutritional value of data. High signal with low token cost is the goal.
-- **Circuit Breakers:** Mimics biological refractory periods, where a failing "organ" (tool) is temporarily inhibited to prevent system-wide exhaustion.
+### 3. Psychology: Piagetian Synaptic Plasticity
+Knowledge evolution follows **Piagetian Dynamics**:
+- **Assimilation:** Grounding new inputs into the existing cognitive schema via **Schema-Constrained Generative Memory (SCG-Mem)**.
+- **Accommodation:** Expanding the **Prefix Trie** with novel concepts when information falls outside the current epistemic boundary.
+- **Structural Safety:** Use of Prefix Tries ensures 100% retrieval validity by mathematically masking invalid tokens at the logit level, eliminating structural hallucinations.
+
+### 4. Biology: Metabolic Homeostasis & Adaptive Compression
+Wisdom treats tokens and compute as **Metabolic Currency**.
+- **TSR (Token-to-Signal Ratio):** Measures the nutritional value of data.
+- **Adaptive Contextual Compression (ACC):** Dynamically prioritizes critical information using dependency-aware sentence fusion.
+- **Context Folding:** Agents summarize their reasoning branches to preserve the main context window's TSR.
 
 ---
 
@@ -26,24 +30,32 @@ A cognitive engine must be efficient to survive. Project Wisdom treats tokens an
 ...
 
 ### 1. The Cortex (`pkg/cortex`)
-**Role:** Semantic Memory.
-- **Responsibility:** Persisting facts, observations, and relationships (nodes and links).
-- **Mechanism:** Uses SQLite (pure Go) for high-fidelity provenance and **RP Forest** (Random Projection Forest) for scalable vector search.
-- **Novelty Filter:** Implements a "Gating" mechanism where new knowledge is compared against existing nodes. If similarity > 0.92, it triggers "Synaptic Strengthening" (updating confidence) instead of creating duplicates.
-- **Logic:** Implements Personalized PageRank (PPR) for graph propagation to re-rank knowledge based on relevance to a seed set of nodes.
+**Role:** Stratified Semantic Memory & Schema-Constrained Reasoning.
+- **Stratification:**
+    - **Superficial Knowledge (Hot):** High-frequency facts and current context stored in SQLite (`storage_node.go`) for $O(1)$ retrieval.
+    - **Deep Knowledge (Cold):** Long-term relational meshes and archived historical patterns stored in the Graph Mesh (`storage_graph.go`).
+- **Mechanism:** Implements **SCG-Mem** and modular storage handlers (Node, Graph, Vector, Spaced Repetition).
+- **Link-Based Multimodality:** Nodes store structured `ExternalLinks` (Bugs, Videos, Images) and `SourceMimeType`. Provenance tracking includes `author_id`, `edit_history`, and `certainty_weight`.
+- **Active Pruning:** Implements "Synaptic Pruning" and auto-migration between `HOT` and `COLD` strata during REM cycles.
 
 ### 2. The Thalamus (`pkg/thalamus`)
-**Role:** Executive Orchestration & Gating.
-- **Responsibility:** Admission control, session management, and planning.
-- **Gating:** Implements "Reactive Gating" using JSON Schema validation to ensure all incoming requests are structurally sound.
-- **Orchestration:** Orchestrates knowledge retrieval and tool triggering, applying metabolic budgets to maximize the Token-to-Signal Ratio (TSR).
-- **Chat:** Provides grounded conversational capabilities by searching the Cortex before prompting the LLM.
+**Role:** Executive Orchestration & Neural-Socratic Gating.
+- **Responsibility:** Intent classification, RAG orchestration, and Global Workspace management.
+- **Multi-User isolation:** Orchestrates isolated `Session` objects and `Hippocampus` traces per `UserID`, while accessing a **Shared Cortex**.
+- **Intent Classifier v2:** Automatically detects `CODE`, `RELATIONAL`, or `GENERAL` queries to route between GrepRAG and Graph-RAG.
+- **Cost Switch:** Implements `DetermineRetrieveMode` to toggle between **Low-Cost** (HOT only) and **High-Cost** (HOT+COLD + Deep Graph Crawl) based on model uncertainty and token budget.
+- **Neural-Socratic Loop:** Implements an iterative dialogue between the LLM and the Graph. Generates diagnostic messages ($\pi_{map}$) to bridge knowledge gaps or resolve ambiguity.
+
+- **Broadcasting:** Manages a limited-capacity "Global Workspace" where specialized processes compete for access.
+- **Rhythmic Gating:** Synchronizes retrieval with reasoning turns ("Thinking in Documents") via 10 Hz alpha oscillations (simulated).
+- **Chat:** Provides grounded conversational capabilities by searching the Cortex before prompting the LLM, applying metabolic budgets to maximize TSR.
 
 ### 3. The Cerebellum (`pkg/cerebellum`)
-**Role:** Motor Control (Execution).
-- **Responsibility:** Safe, non-blocking execution of tools and actions.
-- **Runner:** Managed worker pool with semaphore-based concurrency control.
-- **Resilience:** Implements a Circuit Breaker pattern (Closed, Open, Half-Open) per tool to prevent cascading failures.
+**Role:** Motor Control & Linear State-Space Execution.
+- **Responsibility:** Safe execution of retrieval and reasoning tasks at billion-node scale.
+- **Mechanism:** Integrates **Graph Mamba** blocks with **Cross-Batch Aggregation (COMBA)**.
+    - Uses structured recurrence to capture long-range dependencies with $O(N)$ complexity.
+- **Resilience:** Implements **GraphTARIF** (Linear Graph Transformer) for high expressivity without quadratic compute bottlenecks.
 - **Jobs:** Asynchronous job tracking with unique IDs and state lifecycle (`Pending` -> `Running` -> `Finished/Failed`).
 
 ### 4. Metabolism (`pkg/metabolism`)
@@ -56,6 +68,27 @@ A cognitive engine must be efficient to survive. Project Wisdom treats tokens an
 **Role:** Communication Interface.
 - **Responsibility:** Exposing Wisdom's internal state via a high-performance REST API.
 - **Observability:** 100% instrumented with OpenTelemetry (OTel) for tracing "thinking steps".
+
+---
+
+## Specialized Cognitive Capabilities
+
+### Neural-Socratic Dialogue (The Inquirer)
+Wisdom extends its generic memory to support iterative retrieval refinement.
+- **Diagnostic Mapping:** Translates model uncertainty ($\sigma$) into targeted graph edits or seed expansions ($\Delta G$).
+- **Seed Expansion:** Identifies new entry points in the graph not initially visible through semantic similarity alone.
+
+### Coaching & Adaptive Learning (The Coach)
+Wisdom extends its generic memory to support personalized coaching (e.g., Chess, Languages) without domain-specific code.
+
+- **Genetic Patterns:** Knowledge is decomposed into atomic `PATTERN` and `CONCEPT` nodes.
+- **State Links:** The relationship between a `PERSON` and a `PATTERN` is modeled via semantic links:
+    - `MASTERED_BY`: High confidence, extended review interval.
+    - `STRUGGLES_WITH`: Low confidence, frequent review.
+- **Dependency Awareness:** `PREREQUISITE_OF` links enable the engine to detect when a user is missing foundational knowledge required for a more advanced concept they are attempting to master.
+- **Spaced Repetition (SM-2):** The Thalamic Scheduler implements the SM-2 algorithm. It automatically calculates the next review date based on user recall quality, ensuring efficient long-term retention.
+
+---
 
 ## Substrate Strategy: Evolutionary Performance
 Wisdom uses an **Evolutionary Substrate** designed for low-cost starts and extreme scalability.

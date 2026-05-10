@@ -6,6 +6,23 @@ import (
 )
 
 // Usage represents the consumption of resources.
+
+// GatingMode represents the complexity level of processing.
+type GatingMode string
+
+const (
+	LowCostMode  GatingMode = "LOW_COST"
+	HighCostMode GatingMode = "HIGH_COST"
+)
+
+// DetermineGating evaluates whether to upgrade to high-cost reasoning.
+func DetermineGating(uncertainty float64, isMultiHop bool) GatingMode {
+	if uncertainty > 0.7 || isMultiHop {
+		return HighCostMode
+	}
+	return LowCostMode
+}
+
 type Usage struct {
 	TokensIn     int
 	TokensOut    int
@@ -91,12 +108,14 @@ func (t *Tracker) Efficiency(sessionID string) EfficiencyReport {
 	usage := t.sessions[sessionID]
 	t.mu.RUnlock()
 
-	return EfficiencyReport{
+	report := EfficiencyReport{
 		TSR:           CalculateTSR(usage),
 		MetabolicRate: CalculateMetabolicRate(usage),
 		TotalTokens:   usage.TokensIn + usage.TokensOut,
 		SignalUnits:   usage.SignalUnits,
 	}
+	report.HealthStatus = report.GetHealthStatus()
+	return report
 }
 
 // GlobalEfficiency returns the aggregated efficiency report for all sessions.
@@ -105,10 +124,12 @@ func (t *Tracker) GlobalEfficiency() EfficiencyReport {
 	usage := t.global
 	t.mu.RUnlock()
 
-	return EfficiencyReport{
+	report := EfficiencyReport{
 		TSR:           CalculateTSR(usage),
 		MetabolicRate: CalculateMetabolicRate(usage),
 		TotalTokens:   usage.TokensIn + usage.TokensOut,
 		SignalUnits:   usage.SignalUnits,
 	}
+	report.HealthStatus = report.GetHealthStatus()
+	return report
 }

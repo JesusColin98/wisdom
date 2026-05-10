@@ -1,19 +1,21 @@
-# Task Objective: Evolve Wisdom into an Agnostic Biologically-Inspired Memory Substrate
+# Task Objective: Integrate Chat Agent and Portal with Wisdom Neural enhancements & Deploy to Cloud Run (Phase 2)
 
 ## Task Tracker
-- **Task Objective**: Implement Traceable Neurogenesis (versioning), Community Detection (dynamic topics), and Synaptic Propagation (PageRank retrieval) to support multi-domain cases (Chess, English, Roles, Code) agnostically.
-- **Target Bug**: N/A - Architectural Evolution.
-- **Active CL**: Biologically-Inspired Memory Substrate
+- **Task Objective**: Close integration gaps in Chatbot and Portal to leverage specialized Wisdom Engine capabilities (Socratic Loop, Stratum Visuals, Hallucination Guard).
+- **Target Bug**: N/A - System Integration.
+- **Active CL**: Wisdom Ecosystem Integration
 - **Status**: IN_PROGRESS
-- **Last Updated**: 2026-05-09 11:05 PM
+- **Last Updated**: 2026-05-09 11:45 PM
 
 ## Touched Artifacts
-- .gemini/gemini_memory.md
-- brujula/wisdom/pkg/cortex/node.go
-- brujula/wisdom/pkg/thalamus/rem.go
-- brujula/wisdom/TODO.md
-- brujula/wisdom/scripts/deploy_fix.sh
-- .gemini/tmp/jesuscolin/556cb906-e172-43f5-b321-80d434f1a183/plans/multi-service-roadmap.md
+- /usr/local/google/home/jesuscolin/brujula/.gemini/gemini_memory.md
+- /usr/local/google/home/jesuscolin/brujula/TODO.md
+- /usr/local/google/home/jesuscolin/brujula/chat_service/main.py
+- /usr/local/google/home/jesuscolin/brujula/portal/src/components/GraphView.jsx
+- /usr/local/google/home/jesuscolin/brujula/portal/src/components/ChatView.jsx
+- /usr/local/google/home/jesuscolin/brujula/portal/src/components/MetabolismView.jsx
+- /usr/local/google/home/jesuscolin/brujula/portal/src/context/WisdomContext.jsx
+- /usr/local/google/home/jesuscolin/brujula/scripts/deploy_all.sh
 
 ## Active Tasks
 - [x] Implement WebSocket Layer in `pkg/api` (Real-time baseline).

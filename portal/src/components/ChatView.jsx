@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, Bot, User, Sparkles, Database, ArrowRight, Wand2, Video, VideoOff, Mic, MicOff, Radio } from 'lucide-react';
+import { MessageSquare, Send, Bot, User, Sparkles, Database, ArrowRight, Wand2, Video, VideoOff, Mic, MicOff, Radio, Shield, AlertCircle } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
 const ChatView = ({ onDistill }) => {
+  const { AGENT_WS, API_BASE } = useWisdom();
   const [messages, setMessages] = useState([
     { role: 'assistant', content: "Hello! I am Wisdom. I can help you explore your semantic knowledge graph and execute SRE tools. How can I assist you today?", context: [] }
   ]);
@@ -11,18 +12,20 @@ const ChatView = ({ onDistill }) => {
   const [isLive, setIsLive] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [hasAudio, setHasMic] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const scrollRef = useRef(null);
   const socketRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  const WS_BASE = window.location.hostname === 'localhost' ? 'ws://localhost:8081' : `wss://${window.location.host}`;
-
   useEffect(() => {
     // Initialize WebSocket
-    const socket = new WebSocket(`${WS_BASE}/ws/chat`);
+    const socket = new WebSocket(`${AGENT_WS}/ws/chat`);
     
-    socket.onopen = () => console.log("Cortex link established");
+    socket.onopen = () => {
+        console.log("Cortex link established");
+        setIsConnected(true);
+    };
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === 'status') {
@@ -36,15 +39,18 @@ const ChatView = ({ onDistill }) => {
         setIsTyping(false);
       }
     };
-    socket.onclose = () => console.log("Cortex link severed");
+    socket.onclose = () => {
+        console.log("Cortex link severed");
+        setIsConnected(false);
+    };
     
     socketRef.current = socket;
     return () => socket.close();
-  }, [WS_BASE]);
+  }, [AGENT_WS]);
 
   useEffect(() => {
     let frameInterval;
-    if (isLive && socketRef.current?.readyState === WebSocket.OPEN) {
+    if (isLive && isConnected) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
@@ -54,7 +60,7 @@ const ChatView = ({ onDistill }) => {
           canvas.height = 120;
           ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
           canvas.toBlob((blob) => {
-            if (blob && socketRef.current?.readyState === WebSocket.OPEN) {
+            if (blob && isConnected) {
               socketRef.current.send(blob);
             }
           }, 'image/jpeg', 0.5);
@@ -62,7 +68,7 @@ const ChatView = ({ onDistill }) => {
       }, 1000); // 1 FPS for prototype
     }
     return () => clearInterval(frameInterval);
-  }, [isLive]);
+  }, [isLive, isConnected]);
 
 
   const toggleLive = async () => {
@@ -106,6 +112,25 @@ const ChatView = ({ onDistill }) => {
     onDistill(note);
   }, [onDistill]);
 
+  const verifyMessage = async (content, idx) => {
+    try {
+        const res = await fetch(`${API_BASE}/validate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assertion: content })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            setMessages(prev => {
+                const next = [...prev];
+                next[idx].isValid = data.valid;
+                next[idx].validationReason = data.reason;
+                return next;
+            });
+        }
+    } catch (e) { console.error("Validation failed:", e); }
+  };
+
   return (
     <div className="flex h-full flex-col bg-[#0d1117] text-gray-200">
       {/* Header */}
@@ -117,7 +142,7 @@ const ChatView = ({ onDistill }) => {
           <div>
             <h1 className="text-xl font-black text-white tracking-tight">Real-time Wisdom</h1>
             <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5 flex items-center gap-2">
-              {socketRef.current?.readyState === WebSocket.OPEN ? (
+              {isConnected ? (
                 <><span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> Link Active</>
               ) : (
                 <><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Link Severed</>
@@ -159,18 +184,35 @@ const ChatView = ({ onDistill }) => {
                     ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/10' 
                     : 'bg-gray-900/50 border-gray-800'
                 }`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap ${msg.isValid === false ? 'underline decoration-red-500 decoration-wavy' : ''}`}>{msg.content}</p>
                   
                   {msg.role === 'assistant' && (
-                      <button 
-                          onClick={() => distillMessage(msg.content)}
-                          className="absolute -right-4 -bottom-4 p-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl shadow-xl opacity-0 group-hover/msg:opacity-100 transition-all scale-75 group-hover/msg:scale-100 flex items-center gap-2"
-                      >
-                          <Wand2 size={16} />
-                          <span className="text-[10px] font-black uppercase tracking-tighter">Distill</span>
-                      </button>
+                      <div className="absolute -right-4 -bottom-4 flex gap-2 opacity-0 group-hover/msg:opacity-100 transition-all scale-75 group-hover/msg:scale-100">
+                        <button 
+                            onClick={() => verifyMessage(msg.content, idx)}
+                            className="p-2.5 bg-red-500 hover:bg-red-400 text-white rounded-xl shadow-xl flex items-center gap-2"
+                            title="Verify against Cortex"
+                        >
+                            <Shield size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">Verify</span>
+                        </button>
+                        <button 
+                            onClick={() => distillMessage(msg.content)}
+                            className="p-2.5 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl shadow-xl flex items-center gap-2"
+                        >
+                            <Wand2 size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">Distill</span>
+                        </button>
+                      </div>
                   )}
                 </div>
+
+                {msg.isValid === false && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-2 text-[10px] font-bold text-red-300 uppercase animate-in slide-in-from-top-2">
+                        <AlertCircle size={14} />
+                        Potential Hallucination: {msg.validationReason}
+                    </div>
+                )}
 
                 {msg.context && msg.context.length > 0 && (
                   <div className="space-y-3">

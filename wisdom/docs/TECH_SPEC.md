@@ -22,13 +22,20 @@ During the initial audit, several critical gaps were identified in the `nexussta
     - **Native OTel:** Every internal function call is wrapped in a Span.
     - **Trace-ID Injection:** Every tool call carries a trace-ID that links back to the "Neural Atlas" (the UI), allowing visual debugging of the thought process.
 
+### D. Static Context Stagnation
+- **Gap:** Traditional RAG systems fetch context once and hope it's enough. If the context is incomplete, the model hallucinations or fails.
+- **Wisdom Fix:**
+    - **Neural-Socratic Loop:** If the retrieved context doesn't resolve a "Groundedness Check", the Thalamus triggers an **Inquiry Phase** to expand the graph search dynamically.
+    - **Synaptic Reinforcement:** A "Dopamine-like" feedback loop where nodes and links that lead to successful answers increase their `ImpactScore` and weight, while unused nodes decay.
+
 ## 2. Porting Strategy: Logic Mapping
 | Component | nexusstate (Python) | Wisdom (Go) | Improvement |
 | :--- | :--- | :--- | :--- |
-| Semantic Memory | Spanner / Memory | `pkg/cortex` (SQLite/RP Forest) | Local-first, sub-linear vector search ($O(\log N)$). |
-| Session Gating | Central Executive | `pkg/thalamus` | Typed Admission Control. |
+| Semantic Memory | Spanner / Memory | `pkg/cortex` (SQLite/RP Forest) | Local-first, stratified storage (HOT/COLD), structured multimodality. |
+| Session Gating | Central Executive | `pkg/thalamus` | Typed Admission Control + **Cost Switch** gating. |
 | Tool Runner | subprocess.run | `pkg/cerebellum` | Parallel execution, non-blocking. |
 | Cost Control | Heuristic metrics | `pkg/metabolism` | Real-time TSR tracking. |
+| Reasoning | One-shot RAG | `pkg/thalamus` | **Neural-Socratic Dialogue** (Iterative retrieval). |
 
 ## 3. Performance Targets
 - **Session Start:** < 100ms (vs legacy ~2s).

@@ -2,11 +2,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"sync"
+	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/google/wisdom/pkg/metabolism"
 	"github.com/google/wisdom/pkg/observability"
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -72,9 +75,10 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 
 	observability.Logger.Info("New WebSocket connection established")
 
+	var lastFrame []byte
+
 	for {
-		var msg WSMessage
-		err := conn.ReadJSON(&msg)
+		messageType, data, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				observability.Logger.Error("WebSocket read error", "error", err)
@@ -82,9 +86,24 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
+		if messageType == websocket.BinaryMessage {
+			// Real-time visual frame received
+			lastFrame = data
+			continue
+		}
+
+		// Handle Text Messages (JSON)
+		var msg WSMessage
+		if err := json.Unmarshal(data, &msg); err != nil {
+			continue
+		}
+
 		// Handle incoming messages
 		switch msg.Type {
 		case "CHAT_REQUEST":
+			if lastFrame != nil {
+				msg.Payload["visual_context"] = lastFrame
+			}
 			s.handleWSChat(ctx, conn, msg.Payload)
 		default:
 			observability.Logger.Warn("Unknown WebSocket message type", "type", msg.Type)
@@ -93,25 +112,46 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWSChat(ctx context.Context, conn *websocket.Conn, payload map[string]any) {
+	startTime := time.Now()
 	message, ok := payload["message"].(string)
 	if !ok {
 		conn.WriteJSON(WSMessage{Type: "ERROR", Payload: map[string]any{"error": "missing message"}})
 		return
 	}
 
-	// For now, we simulate streaming or just use the existing Ask method but send via WS.
-	// Future optimization: Use a streaming interface in s.chat.Ask
-	response, nodes, err := s.chat.Ask(ctx, "anonymous", message)
+	var response string
+	var contextStrings []string
+	var err error
+
+	if visual, ok := payload["visual_context"].([]byte); ok {
+		// Multi-modal response
+		observability.Logger.Info("Processing multi-modal chat request with visual context")
+		response, err = s.chat.LLM.IngestDocument(ctx, visual, "image/jpeg") // Re-using IngestDocument for frames
+	} else {
+		response, contextStrings, err = s.chat.Ask(ctx, "anonymous", message)
+	}
+
 	if err != nil {
 		conn.WriteJSON(WSMessage{Type: "ERROR", Payload: map[string]any{"error": err.Error()}})
 		return
 	}
 
+	// Record metabolic usage
+	tokensIn := len(message) / 4
+	tokensOut := len(response) / 4
+	s.tracker.Record("anonymous", metabolism.Usage{
+		TokensIn:    tokensIn,
+		TokensOut:   tokensOut,
+		SignalUnits: len(contextStrings),
+		Duration:    time.Since(startTime),
+	})
+	s.broadcastMetabolism("anonymous")
+
 	conn.WriteJSON(WSMessage{
 		Type: "CHAT_RESPONSE",
 		Payload: map[string]any{
-			"response":      response,
-			"context_nodes": nodes,
+			"response": response,
+			"context":  contextStrings,
 		},
 	})
 }

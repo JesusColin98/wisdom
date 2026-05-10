@@ -20,13 +20,20 @@ CREATE TABLE IF NOT EXISTS nodes (
     namespace_id TEXT NOT NULL,
     metadata JSON DEFAULT '{}',        -- Typed attributes (e.g., owner, dashboards)
     confidence_score REAL DEFAULT 0.8, -- 0.0 - 1.0 (The Truth Metric)
+    impact_score REAL DEFAULT 0.0,     -- Utility metric for pruning
+    stratum TEXT NOT NULL DEFAULT 'HOT', -- HOT, COLD
+    source_mime_type TEXT DEFAULT 'text/plain',
+    external_links JSON DEFAULT '[]',  -- Array of URIs
     superseded_by_id TEXT,             -- Traceable Neurogenesis: Link to newer version
     valid_from TIMESTAMP,              -- Temporal logic start
-    valid_until TIMESTAMP,             -- Temporal logic end
+    valid_until TIMESTAMP,              -- Temporal logic end
+    repetition_count INTEGER DEFAULT 0, -- SM-2: Number of times reviewed
+    easiness_factor REAL DEFAULT 2.5,  -- SM-2: Easiness factor
+    next_review_at TIMESTAMP,           -- SM-2: Scheduled review time
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (namespace_id) REFERENCES namespaces(id),
-    FOREIGN KEY (superseded_by_id) REFERENCES nodes(id)
+    FOREIGN KEY (superseded_by_id) REFERENCES nodes(id) ON DELETE SET NULL
 );
 
 -- Indices for performance
@@ -34,6 +41,7 @@ CREATE INDEX IF NOT EXISTS idx_nodes_author ON nodes(author);
 CREATE INDEX IF NOT EXISTS idx_nodes_entity_class ON nodes(entity_class);
 CREATE INDEX IF NOT EXISTS idx_nodes_source ON nodes(source_type, source_ref);
 CREATE INDEX IF NOT EXISTS idx_nodes_namespace ON nodes(namespace_id);
+CREATE INDEX IF NOT EXISTS idx_nodes_impact ON nodes(impact_score);
 
 -- Links: Directed relationships between nodes with rich semantics
 CREATE TABLE IF NOT EXISTS links (
@@ -43,8 +51,8 @@ CREATE TABLE IF NOT EXISTS links (
     weight REAL DEFAULT 1.0,           -- Strength of relationship
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (source_id, target_id, relation_type),
-    FOREIGN KEY (source_id) REFERENCES nodes(id),
-    FOREIGN KEY (target_id) REFERENCES nodes(id)
+    FOREIGN KEY (source_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 CREATE INDEX IF NOT EXISTS idx_links_target ON links(target_id);
@@ -55,7 +63,7 @@ CREATE TABLE IF NOT EXISTS vectors (
     embedding BLOB NOT NULL,           -- Float32 array serialized as bytes
     model_version TEXT NOT NULL,       -- e.g., "minilm-v2"
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (node_id) REFERENCES nodes(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 -- Node History: Archival of previous node versions
@@ -64,16 +72,20 @@ CREATE TABLE IF NOT EXISTS node_history (
     node_id TEXT NOT NULL,
     content TEXT NOT NULL,
     metadata JSON,
+    external_links JSON,
+    impact_score REAL,
+    stratum TEXT,
+    source_mime_type TEXT,
     version_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (node_id) REFERENCES nodes(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
 );
 
 -- Trigger to automatically archive versions on update
 CREATE TRIGGER IF NOT EXISTS archive_node_version
 BEFORE UPDATE ON nodes
 BEGIN
-    INSERT INTO node_history (node_id, content, metadata)
-    VALUES (OLD.id, OLD.content, OLD.metadata);
+    INSERT INTO node_history (node_id, content, metadata, external_links, impact_score, stratum, source_mime_type)
+    VALUES (OLD.id, OLD.content, OLD.metadata, OLD.external_links, OLD.impact_score, OLD.stratum, OLD.source_mime_type);
 END;
 
 -- Session Logs: Persistent Hippocampus for transient interactions

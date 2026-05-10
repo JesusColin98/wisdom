@@ -18,6 +18,7 @@ import GraphView from './components/GraphView';
 import MetabolismView from './components/MetabolismView';
 import ChatView from './components/ChatView';
 import NoteEditor from './components/NoteEditor';
+import ReviewView from './components/ReviewView';
 
 function AppContent() {
   const { 
@@ -25,7 +26,8 @@ function AppContent() {
     rigor, setRigor, 
     activeNamespace, setActiveNamespace, 
     user, 
-    loading, error 
+    loading, setLoading,
+    error, API_BASE
   } = useWisdom();
   const [editingNode, setEditingNode] = useState(null);
 
@@ -59,6 +61,7 @@ function AppContent() {
           {[
             { id: 'GRAPH', label: 'Knowledge Graph', icon: <Network size={18} /> },
             { id: 'CHAT', label: 'Conversational', icon: <MessageSquare size={18} /> },
+            { id: 'REVIEW', label: 'Spaced Repetition', icon: <Sparkles size={18} /> },
             { id: 'NOTES', label: 'Note Repository', icon: <FileText size={18} /> },
             { id: 'METABOLISM', label: 'Metabolic Audit', icon: <Activity size={18} /> },
           ].map(item => (
@@ -89,6 +92,56 @@ function AppContent() {
           <Sparkles size={14} />
           Create New Note
         </button>
+
+        <div className="flex flex-col gap-2 px-2">
+            <button 
+                onClick={async () => {
+                    const dir = prompt("Enter directory to map:", ".");
+                    if (dir) {
+                        setLoading(true);
+                        try {
+                            const res = await fetch(`${API_BASE}/cortex/map`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ directory: dir })
+                            });
+                            if (res.ok) alert("Codebase mapping initiated");
+                        } catch (e) { alert(e.message); }
+                        finally { setLoading(false); }
+                    }
+                }}
+                className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-indigo-500/10 hover:text-indigo-300 transition-all"
+            >
+                Map Codebase
+            </button>
+            <input 
+                type="file" 
+                id="doc-upload" 
+                className="hidden" 
+                accept=".pdf,.txt,.docx,.pptx,.xlsx,.png,.jpg,.jpeg"
+                onChange={async (e) => {
+                    if (e.target.files[0]) {
+                        const formData = new FormData();
+                        formData.append('document', e.target.files[0]);
+                        setLoading(true);
+                        try {
+                            const res = await fetch(`${API_BASE}/cortex/upload`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                            if (res.ok) alert("Document ingested successfully");
+                        } catch (e) { alert(e.message); }
+                        finally { setLoading(false); }
+                    }
+                }}
+            />
+            <button 
+                onClick={() => document.getElementById('doc-upload').click()}
+                className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-green-500/10 hover:text-green-300 transition-all"
+            >
+                Upload Knowledge (PDF/Img)
+            </button>
+        </div>
 
         <div className="space-y-6">
           <div>
@@ -194,6 +247,11 @@ function AppContent() {
         {view === 'CHAT' && (
           <div className="h-full overflow-hidden">
             <ChatView onDistill={handleEditNode} />
+          </div>
+        )}
+        {view === 'REVIEW' && (
+          <div className="h-full overflow-hidden">
+            <ReviewView />
           </div>
         )}
         {view === 'NOTES' && (

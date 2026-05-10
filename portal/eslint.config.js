@@ -28,6 +28,13 @@ export default [
         process: "readonly",
         React: "readonly",
         Math: "readonly",
+        alert: "readonly",
+        prompt: "readonly",
+        FormData: "readonly",
+        URL: "readonly",
+        WebSocket: "readonly",
+        navigator: "readonly",
+        Blob: "readonly",
       },
     },
     rules: {

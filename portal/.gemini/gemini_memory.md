@@ -41,6 +41,8 @@
 *   `/usr/local/google/home/jesuscolin/brujula/portal/nginx.conf`
 *   `/usr/local/google/home/jesuscolin/brujula/portal/Dockerfile`
 *   `/usr/local/google/home/jesuscolin/brujula/portal/DEPLOYMENT.md`
+*   `/usr/local/google/home/jesuscolin/brujula/portal/cloudbuild.yaml`
+*   `/usr/local/google/home/jesuscolin/brujula/portal/src/components/ReviewView.jsx`
 
 ## 🎯 Task Tracker
 *   [ ] **1. Research:** Understand requirements and reproduce behavior empirically.

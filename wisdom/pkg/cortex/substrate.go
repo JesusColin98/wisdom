@@ -95,10 +95,36 @@ func (s *RPForestSubstrate) addToNode(n *rpNode, id string, vector []float32, de
 			n.NodeIDs = append(n.NodeIDs, id)
 			return n
 		}
-		// Split leaf into internal node
-		n.Hyperplane = make([]float32, s.Dim)
-		for i := range n.Hyperplane {
-			n.Hyperplane[i] = rand.Float32()*2 - 1
+		// Split leaf into internal node using centroid-based partitioning
+		// We pick two random points from the current leaf to define the split
+		if len(n.NodeIDs) >= 2 {
+			idx1 := rand.Intn(len(n.NodeIDs))
+			idx2 := rand.Intn(len(n.NodeIDs))
+			for idx1 == idx2 {
+				idx2 = rand.Intn(len(n.NodeIDs))
+			}
+			
+			vec1, _, _ := s.storage.GetVector(context.Background(), n.NodeIDs[idx1])
+			vec2, _, _ := s.storage.GetVector(context.Background(), n.NodeIDs[idx2])
+			
+			if len(vec1) > 0 && len(vec2) > 0 {
+				n.Hyperplane = make([]float32, s.Dim)
+				for i := range n.Hyperplane {
+					// Hyperplane vector = vec1 - vec2
+					// This defines a plane where points closer to vec1 have positive dot product 
+					// relative to the midpoint, but simpler is just (v - midpoint) ⋅ (vec1 - vec2)
+					// For ANN, vec1 - vec2 is a common heuristic for a split direction.
+					n.Hyperplane[i] = vec1[i] - vec2[i]
+				}
+			}
+		}
+
+		// Fallback to random if picking seeds failed
+		if n.Hyperplane == nil {
+			n.Hyperplane = make([]float32, s.Dim)
+			for i := range n.Hyperplane {
+				n.Hyperplane[i] = rand.Float32()*2 - 1
+			}
 		}
 		oldIDs := n.NodeIDs
 		n.NodeIDs = nil

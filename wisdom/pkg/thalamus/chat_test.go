@@ -48,21 +48,25 @@ func TestChatAsk(t *testing.T) {
 	storage.PutNode(ctx, node)
 
 	mockLLM := &cerebellum.MockLLM{Echo: true}
+	cache, _ := thalamus.NewCache(10)
 	chat := &thalamus.Chat{
 		Storage:     storage,
 		LLM:         mockLLM,
 		Hippocampus: thalamus.NewHippocampus(storage),
 	}
+	chat.Orchestrator = thalamus.NewOrchestrator(storage, cache, nil, nil, nil, nil, nil, nil, nil, nil)
+
+	// Add user session to cache to avoid Recall panic
+	cache.PutSession(thalamus.NewSession("user-1", "test"))
 
 	response, nodes, err := chat.Ask(ctx, "user-1", "Wisdom")
 	if err != nil {
-		t.Fatalf("Ask failed: %v", err)
+	        t.Fatalf("Ask failed: %v", err)
 	}
 
 	if len(nodes) != 1 {
-		t.Errorf("expected 1 context node, got %d", len(nodes))
+	        t.Errorf("expected 1 context node, got %d", len(nodes))
 	}
-
 	if !strings.Contains(response, "Wisdom is a Cognitive SRE engine.") {
 		t.Errorf("response missing context: %s", response)
 	}

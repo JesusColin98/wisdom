@@ -17,7 +17,10 @@ type LLMProvider interface {
 	Complete(ctx context.Context, prompt string) (string, error)
 	// Embed generates a semantic embedding for the given text.
 	Embed(ctx context.Context, text string) ([]float32, error)
+	// IngestDocument extracts wisdom from a raw file (PDF, image, etc.).
+	IngestDocument(ctx context.Context, data []byte, mimeType string) (string, error)
 }
+
 // ResilientLLM wraps an LLMProvider with a CircuitBreaker to handle failures gracefully.
 type ResilientLLM struct {
 	provider LLMProvider
@@ -56,6 +59,21 @@ func (r *ResilientLLM) Embed(ctx context.Context, text string) ([]float32, error
 	if err != nil {
 		r.circuit.RecordFailure()
 		return nil, err
+	}
+
+	r.circuit.RecordSuccess()
+	return res, nil
+}
+
+func (r *ResilientLLM) IngestDocument(ctx context.Context, data []byte, mimeType string) (string, error) {
+	if !r.circuit.Allow() {
+		return "", fmt.Errorf("LLM circuit is open")
+	}
+
+	res, err := r.provider.IngestDocument(ctx, data, mimeType)
+	if err != nil {
+		r.circuit.RecordFailure()
+		return "", err
 	}
 
 	r.circuit.RecordSuccess()
@@ -104,7 +122,7 @@ func (m *MockLLM) Complete(ctx context.Context, prompt string) (string, error) {
 	}
 
 	// Specialized canned response for REM cycle verification
-	if strings.Contains(prompt, "Analyze the following SRE session logs") {
+	if strings.Contains(prompt, "Analyze the following session logs") {
 		return "Finding 1: Hybrid Search enables conceptual retrieval.\n\nFinding 2: Neurogenesis allows autonomous tool evolution.\n\nFinding 3: Synaptic Layering preserves temporal history.", nil
 	}
 
@@ -113,4 +131,9 @@ func (m *MockLLM) Complete(ctx context.Context, prompt string) (string, error) {
 	}
 
 	return "I am a mock LLM response.", nil
+}
+
+// IngestDocument implements the LLMProvider interface.
+func (m *MockLLM) IngestDocument(ctx context.Context, data []byte, mimeType string) (string, error) {
+	return "Extracted wisdom from document: This is a mock analysis of the provided file.", nil
 }

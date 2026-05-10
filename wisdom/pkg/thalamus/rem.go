@@ -16,6 +16,7 @@ type REMService struct {
 	Hippocampus *Hippocampus
 	Cortex      *cortex.Cortex
 	Chat        *Chat
+	Clustering  *ClusteringService
 }
 
 // ConsolidateSession scans the Hippocampus logs for a session, extracts wisdom,
@@ -155,6 +156,16 @@ func (s *REMService) ConsolidateAllSessions(ctx context.Context, inactiveFor tim
 			continue
 		}
 		totalAnchored += count
+	}
+
+	// Trigger Dynamic Reorganization if new knowledge was anchored
+	if totalAnchored > 0 && s.Clustering != nil {
+		moved, err := s.Clustering.ReorganizeNSGeneral(ctx)
+		if err != nil {
+			observability.Logger.Error("Failed to reorganize ns-general", "error", err)
+		} else if moved > 0 {
+			observability.Logger.Info("Dynamic Reorganization complete", "clusters_moved", moved)
+		}
 	}
 
 	return totalAnchored, nil
