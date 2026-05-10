@@ -35,7 +35,18 @@ IAP requires an OAuth Client to handle the authentication flow.
 
 *(Note: The actual Client Secret is securely stored in local uncommitted memory (`MEMORY.md`) and GCP Secrets Manager, never in source control).*
 
-### 3. Enabling IAP on the Load Balancer
+### 3. Provisioning the IAP Service Identity
+
+For IAP to communicate with Cloud Run, a specific Google-managed service account must be created and authorized.
+
+1.  **Created the Service Identity:**
+    ```bash
+    gcloud beta services identity create --service=iap.googleapis.com --project=jesuscolin2025-678c7
+    ```
+2.  **Authorized IAP to Invoke Cloud Run:**
+    Granted the `roles/run.invoker` role to the newly created service account (`service-384412501694@gcp-sa-iap.iam.gserviceaccount.com`) on all protected Cloud Run services.
+
+### 4. Enabling IAP on the Load Balancer
 
 With the OAuth credentials ready, IAP was enabled on the External Load Balancer's backend services:
 
