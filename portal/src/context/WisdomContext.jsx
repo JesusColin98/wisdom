@@ -13,8 +13,8 @@ export const WisdomProvider = ({ children }) => {
 
   const API_BASE = import.meta.env.VITE_ENGINE_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8080' : '');
   const AGENT_BASE = import.meta.env.VITE_AGENT_URL || (window.location.hostname === 'localhost' ? 'http://localhost:8081' : '');
-  const WS_BASE = import.meta.env.VITE_ENGINE_WS_URL || (window.location.hostname === 'localhost' ? 'ws://localhost:8080' : `wss://${new URL(API_BASE || window.location.href).host}`);
-  const AGENT_WS = import.meta.env.VITE_AGENT_WS_URL || (window.location.hostname === 'localhost' ? 'ws://localhost:8081' : `wss://${new URL(AGENT_BASE).host}`);
+  const WS_BASE = import.meta.env.VITE_ENGINE_WS_URL || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
+  const AGENT_WS = import.meta.env.VITE_AGENT_WS_URL || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
   
   const socketRef = useRef(null);
 

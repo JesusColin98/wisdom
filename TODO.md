@@ -31,3 +31,4 @@ Goal: Deepen the graph traversal and visual intelligence.
 - **2026-05-10**: **RECURSIVE PREREQS**: Added recursive graph traversal to identify missing deep dependencies.
 - **2026-05-10**: **VISUAL ATLAS**: Enhanced `GraphView` with glowing high-impact nodes and stratum labels.
 - **2026-05-10**: **MCP NATIVE**: Verified `wisdom-mcp` is functional via stdio and JSON-RPC 2.0.
+- **2026-05-10**: **JSON ERROR FIX**: Resolved "Unexpected token '<'" by implementing path-based routing in GCLB and adding a /whoami endpoint to the engine. All services now share the same domain.
