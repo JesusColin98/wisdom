@@ -27,7 +27,7 @@ func (c *Cortex) GetHistory(ctx context.Context, nodeID string) ([]NodeHistory, 
 	}
 	defer rows.Close()
 
-	var history []NodeHistory
+	history := []NodeHistory{}
 	for rows.Next() {
 		var h NodeHistory
 		var metadataRaw, linksRaw []byte
@@ -59,7 +59,7 @@ func (c *Cortex) ListNodesByLink(ctx context.Context, sourceID string, relationT
 	}
 	defer rows.Close()
 
-	var nodes []Node
+	nodes := []Node{}
 	for rows.Next() {
 		var node Node
 		var metadataRaw, linksRaw []byte

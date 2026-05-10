@@ -35,7 +35,7 @@ func (c *Cortex) GetNeighbors(ctx context.Context, nodeID string) ([]*Node, erro
 	}
 	defer rows.Close()
 
-	var nodes []*Node
+	nodes := []*Node{}
 	for rows.Next() {
 		var node Node
 		var metadataRaw []byte
@@ -102,7 +102,7 @@ func (c *Cortex) ListEdges(ctx context.Context) ([]Link, error) {
 	}
 	defer rows.Close()
 
-	var links []Link
+	links := []Link{}
 	for rows.Next() {
 		var link Link
 		err := rows.Scan(&link.SourceID, &link.TargetID, &link.RelationType, &link.Weight, &link.CreatedAt)

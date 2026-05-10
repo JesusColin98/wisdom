@@ -10,15 +10,13 @@ To prevent unauthorized access (such as the suspicious IP interactions detected 
 
 ### 1. Securing Cloud Run Services (Defense in Depth)
 
-We removed public internet access directly to the Cloud Run instances to ensure users cannot bypass the Load Balancer and IAP.
+We restricted the network "Ingress" of the Cloud Run instances to ensure users cannot bypass the Load Balancer and IAP by calling the `*.run.app` URLs directly.
 
-*   Removed `allUsers` from the `roles/run.invoker` policy on the following services:
+*   Set Ingress to **Internal and Cloud Load Balancing** on:
     *   `wisdom-portal`
     *   `wisdom-chat-agent`
     *   `wisdom-engine`
-*   Explicitly granted `roles/run.invoker` to authorized accounts only:
-    *   `jealcovi98@gmail.com`
-    *   `jesuscolin2025@gmail.com`
+*   With the network restricted, the IAM policy is set to allow `allUsers` to invoke the services. This allows the Load Balancer to fetch the application *after* IAP has authenticated the user. The public internet cannot reach the services due to the Ingress restriction.
 
 ### 2. OAuth Consent and Client Credentials Setup
 

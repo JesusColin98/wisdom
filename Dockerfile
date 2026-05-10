@@ -15,7 +15,7 @@ RUN apk add --no-cache build-base sqlite
 COPY wisdom/go.mod wisdom/go.sum ./
 RUN go mod download
 COPY wisdom/ .
-RUN go build -o wisdom_engine cmd/wisdom/main.go
+RUN go build -o wisdom_engine cmd/wisdom-api/main.go
 
 # Stage 3: Final Production Image
 FROM alpine:latest

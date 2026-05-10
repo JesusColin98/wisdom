@@ -127,7 +127,7 @@ func (c *Cortex) ListNodes(ctx context.Context, namespaceID string) ([]Node, err
 	}
 	defer rows.Close()
 
-	var nodes []Node
+	nodes := []Node{}
 	for rows.Next() {
 		var node Node
 		var metadataRaw []byte
@@ -165,7 +165,7 @@ func (c *Cortex) SearchNodes(ctx context.Context, query string) ([]Node, error) 
 	}
 	defer rows.Close()
 
-	var nodes []Node
+	nodes := []Node{}
 	for rows.Next() {
 		var node Node
 		var metadataRaw, linksRaw []byte
@@ -204,7 +204,7 @@ func (c *Cortex) ListDueNodes(ctx context.Context, namespaceID string, limit int
 	}
 	defer rows.Close()
 
-	var nodes []Node
+	nodes := []Node{}
 	for rows.Next() {
 		var node Node
 		var metadataRaw, linksRaw []byte

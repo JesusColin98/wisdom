@@ -110,7 +110,7 @@ func (c *Cortex) linearVectorSearch(ctx context.Context, queryEmbedding []float3
 	}
 	defer rows.Close()
 
-	var results []ScoredNode
+	results := []ScoredNode{}
 	for rows.Next() {
 		var sn ScoredNode
 		var metadataRaw, linksRaw []byte
@@ -233,7 +233,7 @@ func (c *Cortex) scoreSpecificNodes(ctx context.Context, queryEmbedding []float3
 	}
 	defer rows.Close()
 
-	var results []ScoredNode
+	results := []ScoredNode{}
 	for rows.Next() {
 		var sn ScoredNode
 		var metadataRaw, linksRaw []byte

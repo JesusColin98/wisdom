@@ -69,7 +69,7 @@ func (e *RiskEngine) CalculateEntityRisk(ctx context.Context, rootID string, dep
 		return nil, fmt.Errorf("risk propagation failed: %w", err)
 	}
 
-	var results []RiskScore
+	results := []RiskScore{}
 	for id, influence := range propagation {
 		score := influence * baseRisk
 		if score < 0.1 {

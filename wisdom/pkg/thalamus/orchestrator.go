@@ -112,7 +112,7 @@ func (o *Orchestrator) GetImpactGraph(ctx context.Context, nodeID string, maxDep
 		}
 	}
 
-	var results []cortex.Node
+	results := []cortex.Node{}
 	for _, n := range impacted {
 		results = append(results, n)
 	}

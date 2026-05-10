@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
-        "strings"
+	"strings"
 	"time"
 
 	"github.com/google/wisdom/pkg/cerebellum"
@@ -202,8 +204,8 @@ func (s *Server) handleUploadDocument(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	data := make([]byte, header.Size)
-	if _, err := file.Read(data); err != nil {
+	data, err := io.ReadAll(file)
+	if err != nil {
 		s.sendJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to read file"})
 		return
 	}
@@ -212,6 +214,14 @@ func (s *Server) handleUploadDocument(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.sendJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
+	}
+
+	// Logic: If uploaded via chat, we also want to log it as a "signal" for REM to pick up
+	// We'll search for the node we just created to get its content (wisdom)
+	nodeID := fmt.Sprintf("doc-%s", header.Filename)
+	node, _ := s.storage.GetNode(ctx, nodeID)
+	if node != nil {
+		observability.Logger.Info("Document ingested successfully", "nodeID", node.ID, "content_preview", node.Content[:min(100, len(node.Content))])
 	}
 
 	s.sendJSON(w, http.StatusOK, map[string]any{

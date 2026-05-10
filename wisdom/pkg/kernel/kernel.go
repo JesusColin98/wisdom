@@ -94,7 +94,7 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 	ingestor := sensory.NewDocumentIngestor(llm, storage)
 	mapper := thalamus.NewMapperService(storage, chat)
 	hierarchy := thalamus.NewHierarchyManager(storage)
-	coach := thalamus.NewCoach(storage, scheduler, hierarchy, llm)
+	coach := thalamus.NewCoach(storage, scheduler, llm)
 
 	remService := &thalamus.REMService{
 		Hippocampus: hippocampus,

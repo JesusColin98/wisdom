@@ -20,23 +20,25 @@ const GraphView = ({ namespace, onEditNode }) => {
   const graphRef = useRef();
 
   const fetchGraphData = useCallback(async () => {
-    await Promise.resolve();
     setInternalLoading(true);
     setLoading(true);
     setError(null);
     try {
       const [nodesRes, edgesRes] = await Promise.all([
-        fetch(\`\${API_BASE}/cortex/nodes?namespace=\${namespace}\`),
-        fetch(\`\${API_BASE}/cortex/edges\`)
+        fetch(`${API_BASE}/cortex/nodes?namespace=${namespace}`),
+        fetch(`${API_BASE}/cortex/edges`)
       ]);
 
       if (!nodesRes.ok || !edgesRes.ok) throw new Error("Failed to sync neural nodes");
 
-      const nodes = await nodesRes.json();
-      const edges = await edgesRes.json();
+      const nodesData = await nodesRes.json();
+      const edgesData = await edgesRes.json();
+
+      const nodes = Array.isArray(nodesData) ? nodesData.filter(Boolean) : [];
+      const edges = Array.isArray(edgesData) ? edgesData.filter(Boolean) : [];
 
       // Format for react-force-graph
-      const formattedNodes = nodes.map(n => ({
+      const formattedNodes = (nodes || []).map(n => ({
         id: n.id,
         name: n.id,
         content: n.content,
@@ -49,7 +51,7 @@ const GraphView = ({ namespace, onEditNode }) => {
         isHighImpact: (n.impact_score || 0) > 0.8
       }));
 
-      const formattedLinks = edges.map(e => ({
+      const formattedLinks = (edges || []).map(e => ({
         source: e.source_id,
         target: e.target_id,
         label: e.relation_type,
@@ -67,12 +69,17 @@ const GraphView = ({ namespace, onEditNode }) => {
   }, [namespace, API_BASE, setLoading, setError]);
 
   useEffect(() => {
-    fetchGraphData();
+    let mounted = true;
+    const load = async () => {
+        if (mounted) await fetchGraphData();
+    };
+    load();
+    return () => { mounted = false; };
   }, [fetchGraphData]);
 
   useEffect(() => {
     if (lastEvent && (lastEvent.type === 'REM_CONSOLIDATED' || lastEvent.type === 'MAPPED')) {
-        fetchGraphData();
+        fetchGraphData(); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [lastEvent, fetchGraphData]);
 
@@ -88,10 +95,10 @@ const GraphView = ({ namespace, onEditNode }) => {
     if (!selectedNode) return;
     setLoading(true);
     try {
-        const res = await fetch(\`\${API_BASE}/cortex/lineage?id=\${selectedNode.id}&direction=\${direction}\`);
+        const res = await fetch(`${API_BASE}/cortex/lineage?id=${selectedNode.id}&direction=${direction}`);
         if (res.ok) {
             const lineageNodes = await res.json();
-            window.alert(\`Found \${lineageNodes.length} nodes in lineage \${direction}\`);
+            window.alert(`Found ${lineageNodes.length} nodes in lineage ${direction}`);
         }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -121,7 +128,7 @@ const GraphView = ({ namespace, onEditNode }) => {
         nodeCanvasObject={(node, ctx, globalScale) => {
           const label = node.id;
           const fontSize = 12/globalScale;
-          ctx.font = \`\${fontSize}px Inter, sans-serif\`;
+          ctx.font = `${fontSize}px Inter, sans-serif`;
           const textWidth = ctx.measureText(label).width;
           const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4); 
 

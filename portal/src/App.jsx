@@ -44,8 +44,8 @@ function AppContent() {
   return (
     <div className="flex h-screen bg-[#0d1117] text-gray-100 overflow-hidden font-sans">
       {/* Sidebar */}
-      <div className="w-72 border-r border-gray-800/50 bg-black/40 backdrop-blur-2xl p-6 flex flex-col gap-8 shadow-2xl z-20">
-        {/* ... (Wisdom Logo Unchanged) */}
+      <div className="w-72 border-r border-gray-800/50 bg-black/40 backdrop-blur-2xl p-6 flex flex-col gap-8 shadow-2xl z-20 overflow-y-auto custom-scrollbar h-full shrink-0">
+        {/* Wisdom Logo Unchanged */}
         <div className="flex items-center gap-3 px-2">
           <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
             <Brain className="text-indigo-400 w-8 h-8" />

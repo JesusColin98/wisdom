@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -113,6 +114,30 @@ func TestServerEndpoints(t *testing.T) {
 	t.Run("POST /validate", func(t *testing.T) {
 		reqBody := `{"assertion": "test"}`
 		req := httptest.NewRequest("POST", "/validate", bytes.NewBufferString(reqBody))
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected status OK, got %d. Body: %s", rec.Code, rec.Body.String())
+		}
+	})
+
+	t.Run("POST /cortex/upload", func(t *testing.T) {
+		// Prepare a multipart form
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("document", "test.txt")
+		if err != nil {
+			t.Fatal(err)
+		}
+		part.Write([]byte("this is some test content for the document"))
+		writer.Close()
+
+		// Set up ingestor correctly for the test
+		server.ingestor = sensory.NewDocumentIngestor(&cerebellum.MockLLM{}, storage)
+
+		req := httptest.NewRequest("POST", "/cortex/upload", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 

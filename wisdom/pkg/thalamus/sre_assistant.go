@@ -60,7 +60,7 @@ func (a *SREAssistant) TraceCausalPath(ctx context.Context, incidentNodeID strin
 	}
 	defer rows.Close()
 
-	var chains []CausalChain
+	chains := []CausalChain{}
 	for rows.Next() {
 		var id2, rel1, id3, rel2, id4, rel3 *string
 		if err := rows.Scan(&id2, &rel1, &id3, &rel2, &id4, &rel3); err != nil {

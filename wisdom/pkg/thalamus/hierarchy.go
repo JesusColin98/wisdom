@@ -33,7 +33,7 @@ func (m *HierarchyManager) GetLineage(ctx context.Context, nodeID string, direct
 	}
 
 	// Recursive CTE to find all related nodes in the hierarchy
-	query := fmt.Sprintf(\`
+	query := fmt.Sprintf(`
 		WITH RECURSIVE lineage AS (
 			-- Anchor member
 			SELECT %s as id, 0 as depth
@@ -54,7 +54,7 @@ func (m *HierarchyManager) GetLineage(ctx context.Context, nodeID string, direct
 		JOIN lineage ON n.id = lineage.id
 		GROUP BY n.id
 		ORDER BY lineage.depth ASC
-	\`, targetField, linkField, targetField, linkField)
+	`, targetField, linkField, targetField, linkField)
 
 	rows, err := m.Cortex.DB().QueryContext(ctx, query, nodeID)
 	if err != nil {
@@ -62,7 +62,7 @@ func (m *HierarchyManager) GetLineage(ctx context.Context, nodeID string, direct
 	}
 	defer rows.Close()
 
-	var nodes []cortex.Node
+	nodes := []cortex.Node{}
 	for rows.Next() {
 		var n cortex.Node
 		var metadataRaw []byte
@@ -86,7 +86,7 @@ func (m *HierarchyManager) GetPrerequisites(ctx context.Context, nodeID string) 
 
 	// Recursive CTE for PREREQUISITE_OF
 	// We want all nodes P such that P -> ... -> nodeID
-	query := \`
+	query := `
 		WITH RECURSIVE prereqs AS (
 			-- Initial prerequisites
 			SELECT source_id as id, 0 as depth
@@ -107,7 +107,7 @@ func (m *HierarchyManager) GetPrerequisites(ctx context.Context, nodeID string) 
 		JOIN prereqs ON n.id = prereqs.id
 		GROUP BY n.id
 		ORDER BY prereqs.depth ASC
-	\`
+	`
 
 	rows, err := m.Cortex.DB().QueryContext(ctx, query, nodeID)
 	if err != nil {
@@ -115,7 +115,7 @@ func (m *HierarchyManager) GetPrerequisites(ctx context.Context, nodeID string) 
 	}
 	defer rows.Close()
 
-	var nodes []cortex.Node
+	nodes := []cortex.Node{}
 	for rows.Next() {
 		var n cortex.Node
 		var metadataRaw []byte
