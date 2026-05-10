@@ -2,36 +2,62 @@
 
 ## Overview
 
-This document tracks the security configurations applied to the Wisdom project to restrict unauthorized access.
+This document tracks the security configurations applied to the Wisdom project to restrict unauthorized access, specifically detailing the implementation of Identity-Aware Proxy (IAP) to protect the application behind a Google Login prompt.
 
 ## Identity-Aware Proxy (IAP) Implementation
 
-To prevent unauthorized access (such as the suspicious IP interactions detected on `2026-05-10`), we have implemented Google Cloud Identity-Aware Proxy (IAP) on the Global External Load Balancer.
+To prevent unauthorized access (such as the suspicious IP interactions detected on `2026-05-10`), we implemented Google Cloud Identity-Aware Proxy (IAP) on the Global External Load Balancer. This ensures all traffic is authenticated via Google Workspace/Gmail accounts before reaching the underlying Cloud Run services.
 
-### Changes Made
+### 1. Securing Cloud Run Services (Defense in Depth)
 
-1.  **Removed Public Cloud Run Access:**
-    *   Removed `allUsers` from the `roles/run.invoker` policy on the `wisdom-portal` Cloud Run service.
-    *   Explicitly granted `roles/run.invoker` to:
-        *   `jealcovi98@gmail.com`
-        *   `jesuscolin2025@gmail.com`
-    *   *Note: The backend services (`wisdom-chat-agent`, `wisdom-engine`) currently still have `allUsers` invoke permissions at the Cloud Run level, relying on the Load Balancer to filter traffic. For defense-in-depth, these should also be restricted in the future to only allow internal traffic or the Load Balancer service account.*
+We removed public internet access directly to the Cloud Run instances to ensure users cannot bypass the Load Balancer and IAP.
 
-2.  **Enabled IAP on Load Balancer Backends:**
-    *   Enabled IAP on the following backend services:
-        *   `wisdom-portal-backend`
-        *   `wisdom-chat-agent-backend`
-        *   `wisdom-engine-backend`
+*   Removed `allUsers` from the `roles/run.invoker` policy on the following services:
+    *   `wisdom-portal`
+    *   `wisdom-chat-agent`
+    *   `wisdom-engine`
+*   Explicitly granted `roles/run.invoker` to authorized accounts only:
+    *   `jealcovi98@gmail.com`
+    *   `jesuscolin2025@gmail.com`
 
-3.  **Configured IAP Access Policies:**
-    *   Granted the `roles/iap.httpsResourceAccessor` role to allow access *only* to the authorized users on all three backends:
-        *   `jealcovi98@gmail.com`
-        *   `jesuscolin2025@gmail.com`
+### 2. OAuth Consent and Client Credentials Setup
 
-### Pending Configuration
+IAP requires an OAuth Client to handle the authentication flow.
 
-The IAP setup is currently incomplete because it requires an **OAuth Client ID and Secret** to handle the Google Sign-In redirection. This must be configured manually in the GCP Console.
+1.  **OAuth Consent Screen:**
+    *   Configured as **External**.
+    *   Restricted to specific **Test users** (`jealcovi98@gmail.com`, `jesuscolin2025@gmail.com`) to prevent anyone else from even seeing the login prompt successfully.
+2.  **OAuth Client ID:**
+    *   Created a **Web application** credential.
+    *   **Authorized redirect URIs** configured exactly as:
+        `https://iap.googleapis.com/v1/oauth/clientIds/<CLIENT_ID>:handleRedirect`
+        *(Example: `https://iap.googleapis.com/v1/oauth/clientIds/384412501694-q5h6p4r8764ilng1i2l4s6q8m2lic3e0.apps.googleusercontent.com:handleRedirect`)*
 
-### Next Steps for OAuth Setup
+*(Note: The actual Client Secret is securely stored in local uncommitted memory (`MEMORY.md`) and GCP Secrets Manager, never in source control).*
 
-(See conversation for instructions on generating the OAuth Client ID and Secret).
+### 3. Enabling IAP on the Load Balancer
+
+With the OAuth credentials ready, IAP was enabled on the External Load Balancer's backend services:
+
+*   `wisdom-portal-backend`
+*   `wisdom-chat-agent-backend`
+*   `wisdom-engine-backend`
+
+Command used:
+```bash
+gcloud compute backend-services update <backend-name> \
+  --global \
+  --iap="enabled,oauth2-client-id=<CLIENT_ID>,oauth2-client-secret=<SECRET>"
+```
+
+### 4. Configuring IAP Access Policies
+
+Finally, we instructed IAP on *who* is allowed to pass through the proxy once they authenticate with Google.
+
+*   Granted the `roles/iap.httpsResourceAccessor` role to the authorized users on all three backends:
+    *   `jealcovi98@gmail.com`
+    *   `jesuscolin2025@gmail.com`
+
+## Result
+
+Accessing the portal at `https://34-49-82-216.nip.io/` now intercepts the request and redirects the user to Google Sign-In. Only the explicitly whitelisted emails can successfully authenticate and reach the application.
