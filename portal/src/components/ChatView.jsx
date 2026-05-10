@@ -21,6 +21,8 @@ const ChatView = ({ onDistill }) => {
   const scrollRef = useRef(null);
   const socketRef = useRef(null);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
   
   // Audio Refs
   const audioContextRef = useRef(null);

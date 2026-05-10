@@ -5,7 +5,6 @@ steps:
   args: ['run', 'build']
   env:
   - 'VITE_ENGINE_URL=${_ENGINE_URL}'
-  - 'VITE_WS_URL=${_WS_URL}'
   - 'VITE_AGENT_URL=${_AGENT_URL}'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', '${_IMAGE_TAG}', '.']

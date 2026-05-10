@@ -14,6 +14,8 @@ import google.generativeai as genai
 from PIL import Image
 from pydub import AudioSegment
 import speech_recognition as sr
+from google.cloud import speech
+from google.cloud import texttospeech
 
 app = FastAPI(title="Wisdom Multimodal Agent Service")
 
@@ -35,6 +37,29 @@ if GEMINI_API_KEY:
 else:
     print("WARNING: GEMINI_API_KEY not set. Multimodal features will be disabled.")
     model = None
+
+tts_client = texttospeech.TextToSpeechAsyncClient()
+stt_client = speech.SpeechAsyncClient()
+
+async def synthesize_speech(text: str) -> bytes:
+    try:
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        # Using Journey voice for highly realistic, humanized speech
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US",
+            name="en-US-Journey-F"
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+            sample_rate_hertz=24000
+        )
+        response = await tts_client.synthesize_speech(
+            input=synthesis_input, voice=voice, audio_config=audio_config
+        )
+        return response.audio_content
+    except Exception as e:
+        print(f"TTS Error: {e}")
+        return None
 
 class ChatRequest(BaseModel):
     message: str
@@ -123,15 +148,56 @@ async def websocket_endpoint(websocket: WebSocket):
     last_image = None
     
     async def audio_worker():
-        """Process incoming audio chunks for transcription/interruption."""
+        """Process incoming audio chunks for transcription."""
+        audio_buffer = bytearray()
+        silence_timeout = 1.5  # Process after 1.5 seconds of silence
+        last_audio_time = asyncio.get_event_loop().time()
+        
         while True:
-            chunk = await audio_queue.get()
-            # Interruption Detection Logic
-            # In a full implementation, we would use a VAD or STT here
-            # For the prototype, we simply signal 'interruption' to the frontend 
-            # if audio is received while AI is speaking.
-            await websocket.send_json({"type": "interruption"})
-            audio_queue.task_done()
+            try:
+                chunk = await asyncio.wait_for(audio_queue.get(), timeout=0.5)
+                audio_buffer.extend(chunk)
+                last_audio_time = asyncio.get_event_loop().time()
+                audio_queue.task_done()
+            except asyncio.TimeoutError:
+                # If we have enough audio and silence timeout reached
+                time_since_last = asyncio.get_event_loop().time() - last_audio_time
+                if len(audio_buffer) > 16000 * 2 * 1 and time_since_last >= silence_timeout:
+                    audio_data = bytes(audio_buffer)
+                    audio_buffer.clear()  # Reset for next utterance
+                    
+                    audio = speech.RecognitionAudio(content=audio_data)
+                    config = speech.RecognitionConfig(
+                        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                        sample_rate_hertz=16000,
+                        language_code="en-US",
+                    )
+                    try:
+                        print("Transcribing audio...")
+                        response = await stt_client.recognize(config=config, audio=audio)
+                        transcript = " ".join([r.alternatives[0].transcript for r in response.results]).strip()
+                        
+                        if transcript:
+                            print(f"User (Voice): {transcript}")
+                            # Echo user message
+                            await websocket.send_json({"type": "message", "role": "user", "content": transcript})
+                            await websocket.send_json({"type": "status", "content": "agent_thinking"})
+                            
+                            result = await agent_process(transcript, last_image)
+                            resp_text = result.get("response", "")
+                            
+                            await websocket.send_json({
+                                "type": "message",
+                                "role": "assistant",
+                                "content": resp_text,
+                                "context": result.get("context", [])
+                            })
+                            
+                            audio_bytes = await synthesize_speech(resp_text)
+                            if audio_bytes:
+                                await websocket.send_bytes(audio_bytes)
+                    except Exception as e:
+                        print(f"STT Error: {e}")
 
     worker_task = asyncio.create_task(audio_worker())
 
@@ -146,17 +212,29 @@ async def websocket_endpoint(websocket: WebSocket):
                         message = payload["content"]
                         await websocket.send_json({"type": "status", "content": "agent_thinking"})
                         result = await agent_process(message, last_image)
+                        
+                        resp_text = result.get("response", "")
                         await websocket.send_json({
                             "type": "message",
                             "role": "assistant",
-                            "content": result.get("response", ""),
+                            "content": resp_text,
                             "context": result.get("context", [])
                         })
-                except:
+                        
+                        # Generate and send TTS audio
+                        audio_bytes = await synthesize_speech(resp_text)
+                        if audio_bytes:
+                            await websocket.send_bytes(audio_bytes)
+                except Exception as e:
+                    print(f"Error handling text: {e}")
                     # Fallback for raw text
                     await websocket.send_json({"type": "status", "content": "agent_thinking"})
                     result = await agent_process(data["text"], last_image)
-                    await websocket.send_json({"type": "message", "role": "assistant", "content": result.get("response", "")})
+                    resp_text = result.get("response", "")
+                    await websocket.send_json({"type": "message", "role": "assistant", "content": resp_text})
+                    audio_bytes = await synthesize_speech(resp_text)
+                    if audio_bytes:
+                        await websocket.send_bytes(audio_bytes)
             
             elif "bytes" in data:
                 bytes_data = data["bytes"]

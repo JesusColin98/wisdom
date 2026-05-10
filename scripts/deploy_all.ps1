@@ -100,7 +100,6 @@ function Build-And-Push($name, $contextDir, $configPath, $substitutions) {
 
     gcloud builds submit $contextDir `
         --config $configPath `
-        --service-account "projects/$PROJECT_ID/serviceAccounts/cloud-run-build-sa@$PROJECT_ID.iam.gserviceaccount.com" `
         --substitutions $subsString `
         --project $PROJECT_ID | Out-Host
     return $image
@@ -141,7 +140,7 @@ gcloud run deploy wisdom-chat-agent `
 $AGENT_URL = gcloud run services describe wisdom-chat-agent --platform managed --region $REGION --format 'value(status.url)' --project $PROJECT_ID
 
 # 3. Portal
-$PORTAL_IMAGE = Build-And-Push "wisdom-portal" "portal" "portal/cloudbuild.yaml" "_ENGINE_URL=$ENGINE_URL,_AGENT_URL=$AGENT_URL,_WS_URL="
+$PORTAL_IMAGE = Build-And-Push "wisdom-portal" "portal" "portal/cloudbuild.yaml" "_ENGINE_URL=$ENGINE_URL,_AGENT_URL=$AGENT_URL"
 Write-Host "Deploying Portal..."
 gcloud run deploy wisdom-portal `
     --image $PORTAL_IMAGE `
