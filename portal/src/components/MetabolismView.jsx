@@ -4,7 +4,7 @@ import { useWisdom } from '../context/WisdomContext';
 
 const MetabolismView = () => {
   const { API_BASE, setLoading, setError } = useWisdom();
-  const [report, setReport] = useState({ tsr: 0, metabolic_rate: 0, total_tokens: 0, signal_units: 0 });
+  const [report, setReport] = useState({ TSR: 0, MetabolicRate: 0, TotalTokens: 0, SignalUnits: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchMetabolism = useCallback(async () => {
@@ -63,28 +63,28 @@ const MetabolismView = () => {
         <StatCard 
           icon={<TrendingUp className="text-green-400" size={20} />} 
           label="Metabolic Efficiency" 
-          value={(report.tsr * 100).toFixed(1)} 
+          value={(report.TSR * 100).toFixed(1)} 
           suffix="%"
           sublabel="Token-to-Signal Ratio"
         />
         <StatCard 
           icon={<Zap className="text-indigo-400" size={20} />} 
           label="Total Consumption" 
-          value={report.total_tokens.toLocaleString()} 
+          value={report.TotalTokens.toLocaleString()} 
           suffix="Tokens"
           sublabel="Aggregate Context Usage"
         />
         <StatCard 
           icon={<Activity className="text-purple-400" size={20} />} 
           label="Metabolic Rate" 
-          value={report.metabolic_rate.toFixed(2)} 
+          value={report.MetabolicRate.toFixed(2)} 
           suffix="T/s"
           sublabel="Tokens per Second"
         />
         <StatCard 
           icon={<BarChart3 className="text-amber-400" size={20} />} 
           label="Signal Harvest" 
-          value={report.signal_units} 
+          value={report.SignalUnits} 
           suffix="Units"
           sublabel="High-Value Outcomes"
         />
@@ -102,7 +102,7 @@ const MetabolismView = () => {
               The Token-to-Signal Ratio (TSR) measures how effectively Wisdom converts LLM context into verified SRE knowledge. 
               A higher percentage indicates more efficient grounding and less &quot;hallucinatory noise&quot;.
             </p>
-            {report.tsr < 0.4 && (
+            {report.TSR < 0.4 && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 animate-pulse">
                     <Activity className="text-red-400" size={16} />
                     <span className="text-[10px] font-black text-red-300 uppercase">Warning: Low Signal Efficiency. Refine your query.</span>
@@ -110,8 +110,8 @@ const MetabolismView = () => {
             )}
             <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
                <div 
-                className={`h-full transition-all duration-1000 ${report.tsr > 0.8 ? 'bg-green-400 shadow-[0_0_20px_rgba(74,222,128,0.6)]' : 'bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)]'}`}
-                style={{ width: `${Math.min(report.tsr * 100, 100)}%` }}
+                className={`h-full transition-all duration-1000 ${report.TSR > 0.8 ? 'bg-green-400 shadow-[0_0_20px_rgba(74,222,128,0.6)]' : 'bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.5)]'}`}
+                style={{ width: `${Math.min(report.TSR * 100, 100)}%` }}
                />
             </div>
           </div>
