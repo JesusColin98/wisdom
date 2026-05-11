@@ -18,8 +18,7 @@ const HNSWThreshold = 5000
 
 // Cortex manages the semantic memory of Wisdom.
 type Cortex struct {
-	db        *sql.DB
-	substrate VectorSubstrate
+	engine    StorageEngine
 	indexPath string
 	trie      *SCGTrie
 }
@@ -41,18 +40,19 @@ func Open(path string) (*Cortex, error) {
 		return nil, fmt.Errorf("failed to enable foreign keys and WAL: %w", err)
 	}
 
+	engine := NewSQLiteEngine(db, path+".rpforest")
 	c := &Cortex{
-		db:        db,
+		engine:    engine,
 		indexPath: path + ".rpforest",
-		trie:      NewSCGTrie(),
+		trie:      engine.trie, // Use the engine's trie
 	}
-	c.substrate = &FlatSubstrate{storage: c}
+	engine.substrate = &FlatSubstrate{storage: c}
 
 	// Try loading existing index
 	if _, err := os.Stat(c.indexPath); err == nil {
 		forest := NewRPForestSubstrate(c, 10, 768)
 		if err := forest.Load(c.indexPath); err == nil {
-			c.substrate = forest
+			engine.substrate = forest
 			observability.Logger.Info("Loaded RPForest index from disk", "path", c.indexPath)
 		}
 	}
@@ -62,9 +62,9 @@ func Open(path string) (*Cortex, error) {
 
 	// Immediate promotion check if existing data is large
 	var count int
-	err = c.db.QueryRow("SELECT COUNT(*) FROM vectors").Scan(&count)
+	err = db.QueryRow("SELECT COUNT(*) FROM vectors").Scan(&count)
 	if err == nil && count >= HNSWThreshold {
-		if _, ok := c.substrate.(*FlatSubstrate); ok {
+		if _, ok := engine.substrate.(*FlatSubstrate); ok {
 			_ = c.PromoteSubstrate(context.Background())
 		}
 	}
@@ -74,19 +74,14 @@ func Open(path string) (*Cortex, error) {
 
 // WarmTrie builds the SCG-Mem trie from all nodes.
 func (c *Cortex) WarmTrie(ctx context.Context) {
-	query := `SELECT id, content FROM nodes`
-	rows, err := c.db.QueryContext(ctx, query)
+	nodes, err := c.engine.SearchNodes(ctx, "%%") // List all
 	if err != nil {
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var id, content string
-		if err := rows.Scan(&id, &content); err == nil {
-			c.trie.Insert(content, id)
-			c.trie.Insert(id, id) // Also index the ID itself
-		}
+	for _, n := range nodes {
+		c.trie.Insert(n.Content, n.ID)
+		c.trie.Insert(n.ID, n.ID)
 	}
 	observability.Logger.Info("SCG-Mem Trie Warmed")
 }
@@ -98,18 +93,25 @@ func (c *Cortex) GetTrie() *SCGTrie {
 
 // Close closes the database connection.
 func (c *Cortex) Close() error {
-	return c.db.Close()
+	return c.engine.Close()
 }
 
 // InitSchema applies the SQL schema to the database.
 func (c *Cortex) InitSchema(ctx context.Context, schemaSQL string) error {
-	_, err := c.db.ExecContext(ctx, schemaSQL)
-	return err
+	// This is a bit leakier since we need sql.DB, but for now we'll keep it simple
+	if sqlite, ok := c.engine.(*SQLiteEngine); ok {
+		_, err := sqlite.db.ExecContext(ctx, schemaSQL)
+		return err
+	}
+	return fmt.Errorf("InitSchema not supported for this engine")
 }
 
 // DB returns the underlying sql.DB connection.
 func (c *Cortex) DB() *sql.DB {
-	return c.db
+	if sqlite, ok := c.engine.(*SQLiteEngine); ok {
+		return sqlite.db
+	}
+	return nil
 }
 
 // Interaction matches the Thalamus structure but defined here for persistence.
@@ -120,64 +122,24 @@ type Interaction struct {
 
 // AddLog persists a session interaction to the database.
 func (c *Cortex) AddLog(ctx context.Context, sessionID, role, content string) error {
-	query := `INSERT INTO session_logs (session_id, role, content) VALUES (?, ?, ?)`
-	_, err := c.db.ExecContext(ctx, query, sessionID, role, content)
-	return err
+	return c.engine.AddLog(ctx, sessionID, role, content)
 }
 
 // GetLogs retrieves all interactions for a specific session.
 func (c *Cortex) GetLogs(ctx context.Context, sessionID string) ([]Interaction, error) {
-	query := `SELECT role, content FROM session_logs WHERE session_id = ? ORDER BY log_id ASC`
-	rows, err := c.db.QueryContext(ctx, query, sessionID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var logs []Interaction
-	for rows.Next() {
-		var i Interaction
-		if err := rows.Scan(&i.Role, &i.Content); err != nil {
-			return nil, err
-		}
-		logs = append(logs, i)
-	}
-	return logs, nil
+	return c.engine.GetLogs(ctx, sessionID)
 }
 
 // ClearLogs deletes all interactions for a session.
 func (c *Cortex) ClearLogs(ctx context.Context, sessionID string) error {
-	query := `DELETE FROM session_logs WHERE session_id = ?`
-	_, err := c.db.ExecContext(ctx, query, sessionID)
-	return err
+	return c.engine.ClearLogs(ctx, sessionID)
 }
 
 // GetInactiveSessions retrieves IDs of sessions that haven't been updated for the given duration.
 func (c *Cortex) GetInactiveSessions(ctx context.Context, olderThan time.Duration) ([]string, error) {
-	query := `
-		SELECT session_id
-		FROM session_logs
-		GROUP BY session_id
-		HAVING MAX(created_at) < datetime('now', ?)
-	`
-	// olderThan in seconds (e.g., "-24 hours")
-	offset := fmt.Sprintf("-%d seconds", int(olderThan.Seconds()))
-	rows, err := c.db.QueryContext(ctx, query, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var sessions []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		sessions = append(sessions, id)
-	}
-	return sessions, nil
+	return c.engine.GetInactiveSessions(ctx, olderThan)
 }
+
 
 // floatsToBytes converts []float32 to a byte slice for storage.
 func floatsToBytes(floats []float32) []byte {

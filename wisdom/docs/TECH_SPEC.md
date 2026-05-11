@@ -31,7 +31,7 @@ During the initial audit, several critical gaps were identified in the `nexussta
 ## 2. Porting Strategy: Logic Mapping
 | Component | nexusstate (Python) | Wisdom (Go) | Improvement |
 | :--- | :--- | :--- | :--- |
-| Semantic Memory | Spanner / Memory | `pkg/cortex` (SQLite/RP Forest) | Local-first, stratified storage (HOT/COLD), structured multimodality. |
+| Semantic Memory | Spanner / Memory | `pkg/cortex` (Multi-Substrate) | **StorageEngine** abstraction: SQLite (Edge) or Neon/Postgres (Serverless). |
 | Session Gating | Central Executive | `pkg/thalamus` | Typed Admission Control + **Cost Switch** gating. |
 | Tool Runner | subprocess.run | `pkg/cerebellum` | Parallel execution, non-blocking. |
 | Cost Control | Heuristic metrics | `pkg/metabolism` | Real-time TSR tracking. |

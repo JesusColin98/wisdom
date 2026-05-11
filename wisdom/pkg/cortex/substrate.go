@@ -26,7 +26,7 @@ type VectorSubstrate interface {
 
 // FlatSubstrate is the Tier 1 implementation using simple linear scan.
 type FlatSubstrate struct {
-	storage *Cortex
+	engine StorageEngine
 }
 
 func (s *FlatSubstrate) Add(ctx context.Context, id string, vector []float32) error {
@@ -34,19 +34,23 @@ func (s *FlatSubstrate) Add(ctx context.Context, id string, vector []float32) er
 }
 
 func (s *FlatSubstrate) Search(ctx context.Context, query []float32, topK int) ([]ScoredNode, error) {
-	return s.storage.linearVectorSearch(ctx, query, topK)
+	// Re-route to engine's linear search logic
+	if sqlite, ok := s.engine.(*SQLiteEngine); ok {
+		return sqlite.linearVectorSearch(ctx, query, topK)
+	}
+	return nil, fmt.Errorf("flat search only supported for SQLiteEngine")
 }
 
 // RPForestSubstrate implements a Random Projection Forest for scalable ANN search.
 type RPForestSubstrate struct {
-	storage *Cortex
-	Trees   []*rpTree
-	mu      sync.RWMutex
-	Dim     int
+	engine StorageEngine
+	Trees  []*rpTree
+	mu     sync.RWMutex
+	Dim    int
 }
 
-func (s *RPForestSubstrate) SetStorage(c *Cortex) {
-	s.storage = c
+func (s *RPForestSubstrate) SetEngine(e StorageEngine) {
+	s.engine = e
 }
 
 type rpTree struct {
@@ -60,11 +64,11 @@ type rpNode struct {
 	NodeIDs    []string // Only for leaf nodes
 }
 
-func NewRPForestSubstrate(storage *Cortex, numTrees int, dim int) *RPForestSubstrate {
+func NewRPForestSubstrate(engine StorageEngine, numTrees int, dim int) *RPForestSubstrate {
 	forest := &RPForestSubstrate{
-		storage: storage,
-		Trees:   make([]*rpTree, numTrees),
-		Dim:     dim,
+		engine: engine,
+		Trees:  make([]*rpTree, numTrees),
+		Dim:    dim,
 	}
 	for i := range forest.Trees {
 		forest.Trees[i] = &rpTree{}
@@ -95,8 +99,7 @@ func (s *RPForestSubstrate) addToNode(n *rpNode, id string, vector []float32, de
 			n.NodeIDs = append(n.NodeIDs, id)
 			return n
 		}
-		// Split leaf into internal node using centroid-based partitioning
-		// We pick two random points from the current leaf to define the split
+		// Split leaf
 		if len(n.NodeIDs) >= 2 {
 			idx1 := rand.Intn(len(n.NodeIDs))
 			idx2 := rand.Intn(len(n.NodeIDs))
@@ -104,22 +107,17 @@ func (s *RPForestSubstrate) addToNode(n *rpNode, id string, vector []float32, de
 				idx2 = rand.Intn(len(n.NodeIDs))
 			}
 			
-			vec1, _, _ := s.storage.GetVector(context.Background(), n.NodeIDs[idx1])
-			vec2, _, _ := s.storage.GetVector(context.Background(), n.NodeIDs[idx2])
+			vec1, _, _ := s.engine.GetVector(context.Background(), n.NodeIDs[idx1])
+			vec2, _, _ := s.engine.GetVector(context.Background(), n.NodeIDs[idx2])
 			
 			if len(vec1) > 0 && len(vec2) > 0 {
 				n.Hyperplane = make([]float32, s.Dim)
 				for i := range n.Hyperplane {
-					// Hyperplane vector = vec1 - vec2
-					// This defines a plane where points closer to vec1 have positive dot product 
-					// relative to the midpoint, but simpler is just (v - midpoint) ⋅ (vec1 - vec2)
-					// For ANN, vec1 - vec2 is a common heuristic for a split direction.
 					n.Hyperplane[i] = vec1[i] - vec2[i]
 				}
 			}
 		}
 
-		// Fallback to random if picking seeds failed
 		if n.Hyperplane == nil {
 			n.Hyperplane = make([]float32, s.Dim)
 			for i := range n.Hyperplane {
@@ -129,11 +127,10 @@ func (s *RPForestSubstrate) addToNode(n *rpNode, id string, vector []float32, de
 		oldIDs := n.NodeIDs
 		n.NodeIDs = nil
 		
-		// Redistribute old IDs
 		for _, oldID := range oldIDs {
-			vec, _, err := s.storage.GetVector(context.Background(), oldID)
+			vec, _, err := s.engine.GetVector(context.Background(), oldID)
 			if err != nil || len(vec) == 0 {
-				continue // Should not happen if data is consistent
+				continue 
 			}
 			if dotProduct(vec, n.Hyperplane) > 0 {
 				n.Right = s.addToNode(n.Right, oldID, vec, depth+1)
@@ -141,7 +138,6 @@ func (s *RPForestSubstrate) addToNode(n *rpNode, id string, vector []float32, de
 				n.Left = s.addToNode(n.Left, oldID, vec, depth+1)
 			}
 		}
-		// Finally, add the new one
 		if dotProduct(vector, n.Hyperplane) > 0 {
 			n.Right = s.addToNode(n.Right, id, vector, depth+1)
 		} else {
@@ -166,21 +162,21 @@ func (s *RPForestSubstrate) Search(ctx context.Context, query []float32, topK in
 	}
 	s.mu.RUnlock()
 
-	// If too few candidates, fallback to flat search or just return what we have
-	if len(candidates) < topK {
-		return s.storage.linearVectorSearch(ctx, query, topK)
-	}
+	if sqlite, ok := s.engine.(*SQLiteEngine); ok {
+		if len(candidates) < topK {
+			return sqlite.linearVectorSearch(ctx, query, topK)
+		}
 
-	// Rank candidates
-	var ids []string
-	for id := range candidates {
-		ids = append(ids, id)
+		var ids []string
+		for id := range candidates {
+			ids = append(ids, id)
+		}
+		return sqlite.scoreSpecificNodes(ctx, query, ids, topK)
 	}
 	
-	// We need to fetch vectors for these IDs and score them.
-	// For simplicity, we'll use a specialized SQL query for these specific IDs.
-	return s.storage.scoreSpecificNodes(ctx, query, ids, topK)
+	return nil, fmt.Errorf("RPForest search only supported for SQLiteEngine")
 }
+
 
 func (s *RPForestSubstrate) Save(path string) error {
 	s.mu.RLock()

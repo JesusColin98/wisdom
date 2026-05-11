@@ -1,21 +1,21 @@
 # Future Wisdom: Roadmap for Robustness
 
-## Implementation Roadmap (v3.0)
+## Implementation Roadmap (v3.0): Dual-Tier Maturity
 
-### 1. High-Efficiency Retrieval
-- **[ ] GrepRAG Lexical Agent:** Implement an autonomous agent that generates `ripgrep` commands for local codebases to achieve sub-second retrieval.
-- **[ ] TERAG Workflow:** Implement single-pass LLM NER followed by deterministic co-occurrence edge building to reduce token output costs by >90%.
-- **[ ] Thalamic Router:** Build the intent classifier to automatically switch between GrepRAG, TERAG, and Fusion Retrieval.
+### 1. High-Efficiency Multi-Substrate Retrieval
+- **[x] StorageEngine Abstraction:** Define interfaces for Node, Vector, and Graph stores to allow hot-swapping between SQLite and Postgres.
+- **[x] Postgres Tier 1:** Implement `pgvector` and SQL-based graph traversal for serverless deployments.
+- **[ ] Thalamic Router v2:** Automatically detect environment (ENV_TIER) to initialize either `SQLiteEngine` or `PostgresEngine`.
+- **[ ] Neo4j Integration:** Build the `Neo4jEngine` for Tier 2 to handle billion-node traversal with native Cypher support.
 
-### 2. Neural Cortex Enhancements
-- **[ ] Latent Edge Generator:** Automatically discover hidden relationships using k-NN ($k=10$) and $\epsilon$-neighborhood ($S>0.88$) search in the RP Forest.
-- **[ ] Graph Attention (GAT):** Integrate learnable edge weights to prioritize high-signal synapses for SRE troubleshooting.
-- **[ ] Mamba-graph Integration:** Research a Go-native SSM implementation or CGO wrapper for linear-complexity graph processing.
+### 2. Neural Cortex & Cerebellum Sidecar
+- **[x] Python Sidecar Scaffold:** Create the FastAPI `cerebellum_service` for ML-intensive graph processing.
+- **[ ] Cerebellum Client (Go):** Implement a gRPC/HTTP client in `pkg/cerebellum` to delegate GAT and Mamba processing to the Python sidecar.
+- **[ ] Latent Edge Pipeline:** Implement the async event loop to discover "Hidden Synapses" using the Python GAT implementation.
 
-### 3. Generalizable Pattern Modules
-- **[ ] Logistics Engine:** Tree-based Bill of Materials and Star-based distribution center mapping.
-- **[ ] Social Mapper:** Mesh-based influence detection and User-Profile attribute hubs.
-- **[ ] Route Optimizer:** A* and Dijkstra pathfinding over high-redundancy Meshes.
+### 3. Billion-Scale SSM Substrate
+- **[ ] Graph Mamba Blocks:** Implement structured recurrence in the Python Cerebellum for $O(N)$ graph learning.
+- **[ ] Multi-Vector Indexing:** Enable simultaneous search across multiple vector models (e.g., text-embedding-004 and clip-vit) for multimodal reasoning.
 
 ## Implementation Roadmap (v4.0): The Knowledge Runtime
 

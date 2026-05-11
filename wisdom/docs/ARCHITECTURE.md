@@ -90,13 +90,29 @@ Wisdom extends its generic memory to support personalized coaching (e.g., Chess,
 
 ---
 
-## Substrate Strategy: Evolutionary Performance
-Wisdom uses an **Evolutionary Substrate** designed for low-cost starts and extreme scalability.
+## Substrate Strategy: Dual-Tier Evolution
+Wisdom implements a **StorageEngine** abstraction that allows the knowledge base to evolve from a single-user serverless instance to a global enterprise mesh without changing core reasoning logic.
 
-- **Tier 1 (Flat):** For < 5,000 nodes, Wisdom uses a linear SQLite scan. It is 100% accurate and requires zero extra RAM.
-- **Tier 2 (RP Forest):** Beyond 5,000 nodes, the system promotes the substrate to a **Random Projection Forest**. This native Go index provides $O(\log N)$ search performance, enabling millions of nodes with millisecond latencies.
-- **Tier 3 (Cloud Scale):** For multi-instance or >10M nodes, Wisdom is designed to offload vector search to **Firestore Vector Search** (see `substrate_firestore.go`).
-- **Rationale:** This tiered approach ensures Wisdom is always "Low Cost" by default but "Extreme Scale" when the knowledge base matures.
+### Tier 1: Low-Cost Serverless (Startup Mode)
+Optimized for zero idle costs and rapid deployment.
+- **Compute:** Google Cloud Run (Scale-to-zero).
+- **Substrate:** **Neon Serverless Postgres** or **Supabase**.
+- **Vector Search:** Uses `pgvector` with HNSW/IVFFlat indexes for semantic retrieval.
+- **Graph Logic:** Recursive CTEs enable multi-hop reasoning (up to 5-10 hops) directly in SQL.
+- **Pros:** Zero maintenance, pay-as-you-go, unified storage.
+
+### Tier 2: High-Level Enterprise (Billion-Node Mode)
+Optimized for massive datasets, complex causal chains, and advanced GNN processing.
+- **Compute:** GKE (Kubernetes) or dedicated Cloud Run instances.
+- **Graph Substrate:** **Neo4j** or **ArangoDB** for native graph algorithms (PageRank, Community Detection).
+- **Vector Substrate:** **Milvus** or **Qdrant** for high-scale, high-concurrency semantic search.
+- **Sidecar Processing:** A Python-based **Cerebellum Sidecar** handles Graph Mamba and Graph Attention (GAT) using PyTorch.
+- **Pros:** Sub-millisecond hops at scale, dedicated ML compute, enterprise-grade reliability.
+
+---
+
+## Core Philosophy: Neuro-Architectural Engineering
+...
 
 ## Infrastructure & Deployment
 
