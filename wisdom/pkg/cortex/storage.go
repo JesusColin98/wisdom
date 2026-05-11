@@ -3,9 +3,7 @@ package cortex
 import (
 	"context"
 	"database/sql"
-	"encoding/binary"
 	"fmt"
-	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -46,11 +44,11 @@ func Open(path string) (*Cortex, error) {
 		indexPath: path + ".rpforest",
 		trie:      engine.trie, // Use the engine's trie
 	}
-	engine.substrate = &FlatSubstrate{storage: c}
+	engine.substrate = &FlatSubstrate{engine: engine}
 
 	// Try loading existing index
 	if _, err := os.Stat(c.indexPath); err == nil {
-		forest := NewRPForestSubstrate(c, 10, 768)
+		forest := NewRPForestSubstrate(engine, 10, 768)
 		if err := forest.Load(c.indexPath); err == nil {
 			engine.substrate = forest
 			observability.Logger.Info("Loaded RPForest index from disk", "path", c.indexPath)
@@ -140,27 +138,12 @@ func (c *Cortex) GetInactiveSessions(ctx context.Context, olderThan time.Duratio
 	return c.engine.GetInactiveSessions(ctx, olderThan)
 }
 
-
-// floatsToBytes converts []float32 to a byte slice for storage.
-func floatsToBytes(floats []float32) []byte {
-	buf := make([]byte, len(floats)*4)
-	for i, f := range floats {
-		binary.LittleEndian.PutUint32(buf[i*4:], math.Float32bits(f))
-	}
-	return buf
-}
-
-// bytesToFloats converts a byte slice back to []float32.
-func bytesToFloats(b []byte) []float32 {
-	floats := make([]float32, len(b)/4)
-	for i := range floats {
-		floats[i] = math.Float32frombits(binary.LittleEndian.Uint32(b[i*4:]))
-	}
-	return floats
-}
-
 // PutTool stores a dynamic tool definition.
 func (c *Cortex) PutTool(ctx context.Context, id, name, desc, source string) error {
+	db := c.DB()
+	if db == nil {
+		return fmt.Errorf("no database connection available")
+	}
 	query := `
 		INSERT INTO tools (id, name, description, source_code, updated_at)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
@@ -170,13 +153,17 @@ func (c *Cortex) PutTool(ctx context.Context, id, name, desc, source string) err
 			source_code = excluded.source_code,
 			updated_at = CURRENT_TIMESTAMP
 	`
-	_, err := c.db.ExecContext(ctx, query, id, name, desc, source)
+	_, err := db.ExecContext(ctx, query, id, name, desc, source)
 	return err
 }
 
 // ListTools retrieves all dynamic tools from storage.
 func (c *Cortex) ListTools(ctx context.Context) (map[string]string, error) {
-	rows, err := c.db.QueryContext(ctx, `SELECT id, source_code FROM tools`)
+	db := c.DB()
+	if db == nil {
+		return nil, fmt.Errorf("no database connection available")
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id, source_code FROM tools`)
 	if err != nil {
 		return nil, err
 	}

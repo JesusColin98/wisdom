@@ -3,7 +3,6 @@ package cortex
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )

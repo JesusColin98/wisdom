@@ -3,6 +3,7 @@ package cortex
 import (
 	"context"
 	"encoding/gob"
+	"fmt"
 	"math/rand"
 	"os"
 	"sync"

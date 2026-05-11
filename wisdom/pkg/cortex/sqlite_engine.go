@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/google/wisdom/pkg/observability"
-	"golang.org/x/sync/errgroup"
 )
 
 // SQLiteEngine implements StorageEngine using SQLite.
@@ -488,16 +487,72 @@ func (e *SQLiteEngine) ListDueNodes(ctx context.Context, namespaceID string, lim
 			return nil, err
 		}
 
-		if supersededByID.Valid { node.SupersededByID = supersededByID.String }
-		if validFrom.Valid { node.ValidFrom, _ = time.Parse(time.RFC3339, validFrom.String) }
-		if validUntil.Valid { node.ValidUntil, _ = time.Parse(time.RFC3339, validUntil.String) }
-		if nextReviewAt.Valid { node.NextReviewAt = nextReviewAt.Time }
+		if supersededByID.Valid {
+			node.SupersededByID = supersededByID.String
+		}
+		if validFrom.Valid {
+			node.ValidFrom, _ = time.Parse(time.RFC3339, validFrom.String)
+		}
+		if validUntil.Valid {
+			node.ValidUntil, _ = time.Parse(time.RFC3339, validUntil.String)
+		}
+		if nextReviewAt.Valid {
+			node.NextReviewAt = nextReviewAt.Time
+		}
 
 		json.Unmarshal(metadataRaw, &node.Metadata)
 		json.Unmarshal(linksRaw, &node.ExternalLinks)
 		nodes = append(nodes, node)
 	}
 	return nodes, nil
+}
+
+func (e *SQLiteEngine) ResolvePointer(ctx context.Context, pointer string) (string, error) {
+	// 1. Synonym check (Highest priority for aliases)
+	query := `
+		SELECT target_id
+		FROM links
+		WHERE source_id = ? AND relation_type = 'SYNONYM_OF'
+		ORDER BY weight DESC LIMIT 1
+	`
+	var id string
+	err := e.db.QueryRowContext(ctx, query, pointer).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+
+	// 2. Direct ID check
+	err = e.db.QueryRowContext(ctx, `SELECT id FROM nodes WHERE id = ?`, pointer).Scan(&id)
+	if err == nil {
+		return id, nil
+	}
+
+	return "", fmt.Errorf("could not resolve pointer: %s", pointer)
+}
+
+func (e *SQLiteEngine) GetInactiveSessions(ctx context.Context, olderThan time.Duration) ([]string, error) {
+	query := `
+		SELECT session_id
+		FROM session_logs
+		GROUP BY session_id
+		HAVING MAX(created_at) < datetime('now', ?)
+	`
+	interval := fmt.Sprintf("-%d seconds", int(olderThan.Seconds()))
+	rows, err := e.db.QueryContext(ctx, query, interval)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sessions []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, id)
+	}
+	return sessions, nil
 }
 
 func (e *SQLiteEngine) UpdateConfidence(ctx context.Context, nodeID string, delta float64) error {

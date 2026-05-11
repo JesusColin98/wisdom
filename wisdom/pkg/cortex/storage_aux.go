@@ -8,20 +8,28 @@ import (
 
 // CreateNamespace ensures a namespace exists.
 func (c *Cortex) CreateNamespace(ctx context.Context, ns *Namespace) error {
+	db := c.DB()
+	if db == nil {
+		return fmt.Errorf("no database connection available")
+	}
 	query := `INSERT OR IGNORE INTO namespaces (id, name, description) VALUES (?, ?, ?)`
-	_, err := c.db.ExecContext(ctx, query, ns.ID, ns.Name, ns.Description)
+	_, err := db.ExecContext(ctx, query, ns.ID, ns.Name, ns.Description)
 	return err
 }
 
 // GetHistory retrieves the version history for a given node.
 func (c *Cortex) GetHistory(ctx context.Context, nodeID string) ([]NodeHistory, error) {
+	db := c.DB()
+	if db == nil {
+		return nil, fmt.Errorf("no database connection available")
+	}
 	query := `
 		SELECT node_id, content, metadata, external_links, version_timestamp
 		FROM node_history
 		WHERE node_id = ?
 		ORDER BY history_id DESC
 	`
-	rows, err := c.db.QueryContext(ctx, query, nodeID)
+	rows, err := db.QueryContext(ctx, query, nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,13 +55,17 @@ func (c *Cortex) GetHistory(ctx context.Context, nodeID string) ([]NodeHistory, 
 
 // ListNodesByLink retrieves nodes connected to a source via a specific relation type.
 func (c *Cortex) ListNodesByLink(ctx context.Context, sourceID string, relationType string) ([]Node, error) {
+	db := c.DB()
+	if db == nil {
+		return nil, fmt.Errorf("no database connection available")
+	}
 	query := `
 		SELECT n.id, n.content, n.entity_class, n.author, n.source_type, n.source_ref, n.namespace_id, n.metadata, n.confidence_score, n.impact_score, n.stratum, n.source_mime_type, n.external_links, n.created_at, n.updated_at
 		FROM nodes n
 		JOIN links l ON n.id = l.target_id
 		WHERE l.source_id = ? AND l.relation_type = ?
 	`
-	rows, err := c.db.QueryContext(ctx, query, sourceID, relationType)
+	rows, err := db.QueryContext(ctx, query, sourceID, relationType)
 	if err != nil {
 		return nil, err
 	}

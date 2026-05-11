@@ -2,10 +2,6 @@ package cortex
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"fmt"
-	"math"
 	"sort"
 
 	"github.com/google/wisdom/pkg/observability"

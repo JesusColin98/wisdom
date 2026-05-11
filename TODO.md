@@ -27,6 +27,7 @@ Goal: Deepen the graph traversal and visual intelligence.
 - [x] **Hallucination Guard**: Added verification UI in `ChatView` with wavy red underlines for ungrounded text.
 
 ## 🔍 Findings Log
+- **2026-05-11**: **BUILD FIXED**: Resolved go.sum mismatch and fixed compilation errors in pkg/cortex. Consolidatated Cortex methods to delegate to the engine interface. Verified via Docker build and package tests.
 - **2026-05-10**: **IAP SUCCESS**: IAP is now enforcing Google SSO. Note: Avoid loading in frames to prevent OAuth redirect blocks.
 - **2026-05-10**: **RECURSIVE PREREQS**: Added recursive graph traversal to identify missing deep dependencies.
 - **2026-05-10**: **VISUAL ATLAS**: Enhanced `GraphView` with glowing high-impact nodes and stratum labels.
