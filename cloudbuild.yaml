@@ -10,29 +10,38 @@ steps:
       go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
       go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
       export PATH="$PATH:$(go env GOPATH)/bin"
-      protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/cortex.proto
+      protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/cortex.proto proto/thalamus.proto
       
       # We override the stubs just to ensure protoc outputs take precedence
-      rm -f pkg/cortex/v1/stubs.go || true
+      rm -f pkg/cortex/v1/stubs.go pkg/thalamus/v1/stubs.go || true
 
 # 2. Build the Cortex Substrate (Go gRPC)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest', '-f', 'wisdom/Dockerfile.cortex', './wisdom']
 
-# 3. Build the chat service (Python Voice Proxy)
+# 3. Build the Thalamus Gateway (Go gRPC)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest', '-f', 'wisdom/Dockerfile.thalamus', './wisdom']
+
+# 4. Build the chat service (Python Voice Proxy)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest', './chat_service']
 
-# 4. Push the Cortex image
+# 5. Push the Cortex image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest']
 
-# 5. Push the Chat image
+# 6. Push the Thalamus image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest']
+
+# 7. Push the Chat image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest']
 
 images:
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest'
+- 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest'
 
 options:

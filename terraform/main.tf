@@ -110,7 +110,36 @@ resource "google_cloud_run_v2_service" "wisdom_cortex" {
   }
 }
 
-# 5. Cloud Run Service: Wisdom Chat (Python Voice Proxy)
+# 5. Cloud Run Service: Thalamus Gateway
+resource "google_cloud_run_v2_service" "wisdom_thalamus" {
+  name     = "wisdom-thalamus"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.wisdom_sa.email
+
+    containers {
+      image = "us-central1-docker.pkg.dev/${var.project_id}/wisdom-repo/wisdom-thalamus:latest"
+      
+      env {
+        name  = "PORT"
+        value = "50052"
+      }
+      env {
+        name  = "CORTEX_GRPC_URL"
+        value = replace(google_cloud_run_v2_service.wisdom_cortex.uri, "https://", "")
+      }
+      
+      ports {
+        name           = "h2c"
+        container_port = 50052
+      }
+    }
+  }
+}
+
+# 6. Cloud Run Service: Wisdom Chat (Python Voice Proxy)
 resource "google_cloud_run_v2_service" "wisdom_chat" {
   name     = "wisdom-chat"
   location = var.region
@@ -123,8 +152,8 @@ resource "google_cloud_run_v2_service" "wisdom_chat" {
       image = "us-central1-docker.pkg.dev/${var.project_id}/wisdom-repo/wisdom-chat:latest"
       
       env {
-        name  = "WISDOM_ENGINE_URL"
-        value = google_cloud_run_v2_service.wisdom_cortex.uri
+        name  = "WISDOM_THALAMUS_URL"
+        value = google_cloud_run_v2_service.wisdom_thalamus.uri
       }
 
       env {
@@ -144,16 +173,26 @@ resource "google_cloud_run_v2_service" "wisdom_chat" {
   }
 }
 
-# 6. Make Cortex Service Public (Or restrict based on IAP/gRPC auth)
+# 7. Make Cortex Service Private to VPC/Other services (Optional/Best Practice)
+# For now keeping it public to test, but ideally only Thalamus talks to Cortex
 resource "google_cloud_run_service_iam_member" "cortex_public_access" {
   location = google_cloud_run_v2_service.wisdom_cortex.location
   project  = google_cloud_run_v2_service.wisdom_cortex.project
   service  = google_cloud_run_v2_service.wisdom_cortex.name
   role     = "roles/run.invoker"
-  member   = "allUsers" # Replace with IAP/Auth later
+  member   = "allUsers" # Replace with specific service account later
 }
 
-# 7. Make Chat Service Public
+# 8. Make Thalamus Service Public
+resource "google_cloud_run_service_iam_member" "thalamus_public_access" {
+  location = google_cloud_run_v2_service.wisdom_thalamus.location
+  project  = google_cloud_run_v2_service.wisdom_thalamus.project
+  service  = google_cloud_run_v2_service.wisdom_thalamus.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# 9. Make Chat Service Public
 resource "google_cloud_run_service_iam_member" "chat_public_access" {
   location = google_cloud_run_v2_service.wisdom_chat.location
   project  = google_cloud_run_v2_service.wisdom_chat.project

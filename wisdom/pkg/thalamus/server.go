@@ -3,7 +3,6 @@ package thalamus
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"strings"
 	"text/template"
 

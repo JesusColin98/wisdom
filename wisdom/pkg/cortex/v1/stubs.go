@@ -80,3 +80,30 @@ type FactRequest struct {
 type FactList struct {
 	Facts []*Node
 }
+
+// Client stubs
+type CortexClient interface {
+	Memorize(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*NodeID, error)
+	Recall(ctx context.Context, in *RecallRequest, opts ...grpc.CallOption) (*CognitionResponse, error)
+	QueryFacts(ctx context.Context, in *FactRequest, opts ...grpc.CallOption) (*FactList, error)
+}
+
+type cortexClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewCortexClient(cc grpc.ClientConnInterface) CortexClient {
+	return &cortexClient{cc}
+}
+
+func (c *cortexClient) Memorize(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*NodeID, error) {
+	return nil, nil
+}
+
+func (c *cortexClient) Recall(ctx context.Context, in *RecallRequest, opts ...grpc.CallOption) (*CognitionResponse, error) {
+	return nil, nil
+}
+
+func (c *cortexClient) QueryFacts(ctx context.Context, in *FactRequest, opts ...grpc.CallOption) (*FactList, error) {
+	return nil, nil
+}
