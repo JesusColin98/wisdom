@@ -74,7 +74,7 @@ func TestPostgresEngine_GetNode(t *testing.T) {
 	}
 }
 
-func TestPostgresEngine_QueryHechos(t *testing.T) {
+func TestPostgresEngine_QueryFacts(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to open sqlmock: %v", err)
@@ -95,9 +95,9 @@ func TestPostgresEngine_QueryHechos(t *testing.T) {
 		WithArgs(filterJSON).
 		WillReturnRows(rows)
 
-	facts, err := engine.QueryHechos(context.Background(), filters)
+	facts, err := engine.QueryFacts(context.Background(), filters)
 	if err != nil {
-		t.Errorf("QueryHechos failed: %v", err)
+		t.Errorf("QueryFacts failed: %v", err)
 	}
 	if len(facts) != 1 || facts[0].ID != "test-uuid-2" {
 		t.Errorf("Unexpected facts returned: %v", facts)

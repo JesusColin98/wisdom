@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package wisdom.thalamus.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/google/wisdom/pkg/thalamus/v1;thalamusv1";
+
+service Thalamus {
+  // HydrateContext retrieves data from Cortex and formats it deterministically
+  rpc HydrateContext(QueryRequest) returns (ContextPayload);
+  
+  // AuditThought asynchronously saves the LLM reasoning traces
+  rpc AuditThought(ThoughtTrace) returns (AuditResponse);
+}
+
+message QueryRequest {
+  string query = 1;          // The user's input or implicit search string
+  int32 token_budget = 2;    // Max tokens allowed for the returned context
+  repeated string tags = 3;  // Optional filters
+}
+
+message ContextPayload {
+  string formatted_markdown = 1; // The dense, context-optimized string
+  int32 estimated_tokens = 2;
+  repeated string sources = 3;   // IDs of the nodes used to generate the context
+}
+
+message ThoughtTrace {
+  string session_id = 1;
+  string prompt = 2;
+  string chain_of_thought = 3;   // The internal reasoning
+  string final_response = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  google.protobuf.Struct metadata = 6;
+}
+
+message AuditResponse {
+  bool success = 1;
+  string trace_id = 2; // Returns the ID of the saved Signal node
+}

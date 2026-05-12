@@ -1,35 +1,30 @@
-# Wisdom Cognitive Runtime Refactoring: Implementation Plan
+# Wisdom Cognitive Runtime Refactoring: Thalamus Gateway
 
 ## Objective
-Refactor the `Cortex` substrate (Storage & Retrieval) of the Wisdom project to adopt a "Memory-as-a-Service" architecture. The new architecture relies on a flexible, two-table graph schema in PostgreSQL, using `jsonb` for dynamic attributes, entirely decoupled from LLM dependencies.
+Build the `Thalamus Gateway` (Track 02). Thalamus acts as a strict, deterministic gateway that feeds context to the external Gemini LLM and logs its chain of thought. It is completely isolated from the LLM execution itself, functioning purely as a data retriever and formatter to maximize the Token-to-Signal Ratio.
 
 ## Architecture
 
 *   **Language**: Go (gRPC)
-*   **Database**: PostgreSQL / Supabase
-*   **Schema**: Universal Graph Schema (`nodes` and `edges`)
-    *   `nodes`: UUID, Type (Fact, Signal, Concept, User), Payload (JSONB), Confidence, RequiresHuman, TTL.
-    *   `edges`: Source UUID, Target UUID, Relation (THEORY_OF, CONTRADICTS, PREREQUISITE_OF, MASTERED_BY).
-*   **Protocol**: gRPC (`cortex.proto`)
-*   **Events**: NATS JetStream (CloudEvents) - *To be integrated in later tracks*
+*   **Service Port**: 50052
+*   **Protocol**: gRPC (`thalamus.proto`)
+*   **Dependencies**: Acts as a gRPC client to `Cortex` (Port 50051).
 
 ## Phased Approach
 
-### Phase 1: Substrate Definition (Current Focus)
-1.  Establish the Protobuf contract (`cortex.proto`) defining `Memorize`, `Recall`, and `QueryHechos`.
-2.  Define the PostgreSQL schema adhering to the Universal Graph Schema.
-3.  Implement the Go models representing Nodes and Edges.
+### Phase 1: Thalamus Definition & Setup
+1.  Define the `thalamus.proto` contract (`HydrateContext`, `AuditThought`).
+2.  Scaffold the `thalamus` package in `pkg/thalamus`.
+3.  Set up the gRPC Server on port `50052`.
 
-### Phase 2: Engine Implementation
-1.  Refactor `postgres_engine.go` to use the new two-table schema.
-2.  Implement `PutNode`, `GetNode`, and edge creation logic.
-3.  Ensure zero LLM dependencies in the storage layer.
+### Phase 2: Context Hydration
+1.  Implement a gRPC client to communicate with `Cortex`.
+2.  Implement `HydrateContext`: Retrieve `Fact` nodes from `Cortex` and format them into dense Markdown.
+3.  Write unit tests to verify the deterministic formatting logic.
 
-### Phase 3: gRPC Server
-1.  Implement the Cortex gRPC server fulfilling the protobuf interface.
-2.  Wire the server to the `PostgresEngine`.
-3.  Add health checks and validation.
+### Phase 3: Auditing 
+1.  Implement `AuditThought`: Receive reasoning traces and asynchronously write them to `Cortex` as `Signal` nodes.
 
-### Phase 4: Integration & Cleanup
-1.  Clean up legacy SQLite code and models if no longer needed by the Core Substrate.
-2.  Prepare for NATS integration (Track 03).
+### Phase 4: Integration
+1.  Update Terraform to deploy `wisdom-thalamus` to Cloud Run.
+2.  Update Cloud Build to build and push the Thalamus image.

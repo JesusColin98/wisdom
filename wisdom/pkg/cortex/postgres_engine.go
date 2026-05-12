@@ -87,9 +87,9 @@ func (e *PostgresEngine) GetNode(ctx context.Context, id string) (*Node, error) 
 	return &node, nil
 }
 
-// QueryHechos queries nodes of type Fact where the JSONB payload contains the given metadata keys/values.
+// QueryFacts queries nodes of type Fact where the JSONB payload contains the given metadata keys/values.
 // This is a simplified version; complex queries might require specific GIN operators.
-func (e *PostgresEngine) QueryHechos(ctx context.Context, metadataFilters map[string]string) ([]*Node, error) {
+func (e *PostgresEngine) QueryFacts(ctx context.Context, metadataFilters map[string]string) ([]*Node, error) {
 	// Start with the base query for Facts
 	query := `SELECT id, type, payload, confidence, requires_human, ttl, created_at, updated_at FROM nodes WHERE type = 'Fact'`
 	args := []any{}

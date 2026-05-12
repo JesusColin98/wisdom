@@ -10,7 +10,7 @@ option go_package = "github.com/google/wisdom/pkg/cortex/v1;cortexv1";
 service Cortex {
   rpc Memorize(IngestRequest) returns (NodeID);
   rpc Recall(RecallRequest) returns (CognitionResponse);
-  rpc QueryHechos(FactRequest) returns (FactList);
+  rpc QueryFacts(FactRequest) returns (FactList);
 }
 
 message IngestRequest {

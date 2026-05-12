@@ -17,14 +17,14 @@ func (UnimplementedCortexServer) Memorize(context.Context, *IngestRequest) (*Nod
 func (UnimplementedCortexServer) Recall(context.Context, *RecallRequest) (*CognitionResponse, error) {
 	return nil, nil
 }
-func (UnimplementedCortexServer) QueryHechos(context.Context, *FactRequest) (*FactList, error) {
+func (UnimplementedCortexServer) QueryFacts(context.Context, *FactRequest) (*FactList, error) {
 	return nil, nil
 }
 
 type CortexServer interface {
 	Memorize(context.Context, *IngestRequest) (*NodeID, error)
 	Recall(context.Context, *RecallRequest) (*CognitionResponse, error)
-	QueryHechos(context.Context, *FactRequest) (*FactList, error)
+	QueryFacts(context.Context, *FactRequest) (*FactList, error)
 }
 
 func RegisterCortexServer(s grpc.ServiceRegistrar, srv CortexServer) {}

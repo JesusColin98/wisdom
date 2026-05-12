@@ -124,9 +124,9 @@ func (s *Server) Recall(ctx context.Context, req *pb.RecallRequest) (*pb.Cogniti
 	}, nil
 }
 
-// QueryHechos retrieves Facts based on metadata filters.
-func (s *Server) QueryHechos(ctx context.Context, req *pb.FactRequest) (*pb.FactList, error) {
-	facts, err := s.engine.QueryHechos(ctx, req.MetadataFilters)
+// QueryFacts retrieves Facts based on metadata filters.
+func (s *Server) QueryFacts(ctx context.Context, req *pb.FactRequest) (*pb.FactList, error) {
+	facts, err := s.engine.QueryFacts(ctx, req.MetadataFilters)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to query facts: %v", err)
 	}
