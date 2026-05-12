@@ -19,7 +19,7 @@ func NewVertexProvider(ctx context.Context, projectID, location string) (*Vertex
 	}
 	return &VertexProvider{
 		client: client,
-		model:  client.GenerativeModel("gemini-1.5-flash-001"),
+		model:  client.GenerativeModel("gemini-3.1-flash-lite"),
 	}, nil
 }
 

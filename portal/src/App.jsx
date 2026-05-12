@@ -65,12 +65,12 @@ function AppContent() {
             { id: 'NOTES', label: 'Note Repository', icon: <FileText size={18} /> },
             { id: 'METABOLISM', label: 'Metabolic Audit', icon: <Activity size={18} /> },
           ].map(item => (
-            <button 
+            <button
               key={item.id}
               onClick={() => setView(item.id)}
-              className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
-                view === item.id 
-                  ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20' 
+              className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${     
+                view === item.id
+                  ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20'
                   : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-100'
               }`}
             >
@@ -83,18 +83,17 @@ function AppContent() {
               )}
             </button>
           ))}
+
+          <button 
+            onClick={handleNewNote}
+            className="mt-4 w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 transition-all font-black uppercase tracking-wider text-xs shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+          >
+            <FileText size={16} />
+            Write New Note
+          </button>
         </nav>
 
-        <button 
-          onClick={handleNewNote}
-          className="mx-2 p-3.5 bg-indigo-500/5 border border-indigo-500/20 rounded-2xl flex items-center justify-center gap-2.5 text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:bg-indigo-500/10 hover:border-indigo-500/40 transition-all active:scale-95"
-        >
-          <Sparkles size={14} />
-          Create New Note
-        </button>
-
-        <div className="flex flex-col gap-2 px-2">
-            <button 
+        <div className="flex flex-col gap-2 px-2">            <button 
                 onClick={async () => {
                     const dir = prompt("Enter directory to map:", ".");
                     if (dir) {

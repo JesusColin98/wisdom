@@ -253,10 +253,64 @@ const GraphView = ({ namespace, onEditNode }) => {
         >
           <Search size={20} className="group-hover:rotate-90 transition-transform duration-500" />
         </button>
+        <button 
+          onClick={() => setShowExplorer(!showExplorer)}
+          className={`p-4 backdrop-blur-xl border rounded-2xl transition-all shadow-2xl hover:scale-110 active:scale-95 ${
+            showExplorer ? 'bg-indigo-600/80 border-indigo-400 text-white' : 'bg-black/60 border-white/10 text-gray-400 hover:text-indigo-400'
+          }`}
+          title="Data Explorer"
+        >
+          <List size={20} />
+        </button>
         <button className="p-4 bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl text-gray-400 hover:text-indigo-400 transition-all shadow-2xl hover:scale-110 active:scale-95">
           <Layers size={20} />
         </button>
       </div>
+
+      {showExplorer && (
+        <div className="absolute left-28 bottom-8 top-8 w-80 bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-[0_40px_100px_rgba(0,0,0,0.7)] animate-in fade-in slide-in-from-left-8 duration-500 z-30 flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+              <Search className="text-indigo-400" size={20} />
+            </div>
+            <input
+              type="text"
+              placeholder="Explore notes & entities..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent border-b border-gray-700 pb-1 text-sm font-bold text-white placeholder:text-gray-600 w-full focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+            {data.nodes
+              .filter(n => n.id.toLowerCase().includes(searchTerm.toLowerCase()) || (n.content && n.content.toLowerCase().includes(searchTerm.toLowerCase())))
+              .map(node => (
+                <button
+                  key={node.id}
+                  onClick={() => {
+                    setSelectedNode(node);
+                    if (graphRef.current) {
+                      graphRef.current.centerAt(node.x, node.y, 1000);
+                      graphRef.current.zoom(2, 1000);
+                    }
+                  }}
+                  className="w-full text-left p-3 rounded-xl bg-gray-900/50 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition-all group flex items-center justify-between"
+                >
+                  <div className="overflow-hidden">
+                    <div className="text-sm font-bold text-gray-200 truncate">{node.id}</div>
+                    <div className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-1 truncate">
+                      {node.entityClass || 'NOTE'} • {node.stratum}
+                    </div>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-600 group-hover:text-indigo-400 transition-colors shrink-0" />
+                </button>
+            ))}
+            {data.nodes.length === 0 && (
+              <div className="text-center text-gray-500 text-sm py-8 font-bold">No nodes found</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
