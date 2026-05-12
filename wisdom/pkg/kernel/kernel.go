@@ -57,6 +57,7 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 	// 2. Initialize Subsystems
 	tracker := metabolism.NewTracker()
 	registry := cerebellum.NewRegistry()
+	cerebellum.RegisterLearningTools(registry)
 	_ = registry.LoadDynamicTools(ctx, storage)
 
 	cache, _ := thalamus.NewCache(1000)
@@ -111,7 +112,10 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 	risk := thalamus.NewRiskEngine(storage)
 	sre := thalamus.NewSREAssistant(storage)
 
-	orchestrator := thalamus.NewOrchestrator(storage, cache, inquirer, reinforce, classifier, grepRAG, identity, hierarchy, risk, sre)
+	runner := cerebellum.NewRunner(registry, 10)
+	learning := thalamus.NewLearningEngine(storage, runner, coach, llm)
+
+	orchestrator := thalamus.NewOrchestrator(storage, cache, inquirer, reinforce, classifier, grepRAG, identity, hierarchy, risk, sre, learning)
 	chat.Orchestrator = orchestrator
 
 	return &WisdomKernel{
@@ -126,6 +130,7 @@ func Bootstrap(ctx context.Context) (*WisdomKernel, error) {
 		Mapper:       mapper,
 		Hierarchy:    hierarchy,
 		Coach:        coach,
+		Learning:     learning,
 	}, nil
 }
 

@@ -106,6 +106,14 @@ func (c *Coach) DiscoverWeaknesses(ctx context.Context, userID string) ([]Weakne
 	return weaknesses, nil
 }
 
+// ListMasteredNodes returns nodes the user has mastered.
+func (c *Coach) ListMasteredNodes(ctx context.Context, userID string) ([]cortex.Node, error) {
+	ctx, span := observability.Tracer.Start(ctx, "Coach.ListMasteredNodes")
+	defer span.End()
+
+	return c.Cortex.ListNodesByLink(ctx, userID, "MASTERED_BY")
+}
+
 // CurriculumItem represents a prioritized learning task.
 type CurriculumItem struct {
 	NodeID   string  `json:"node_id"`

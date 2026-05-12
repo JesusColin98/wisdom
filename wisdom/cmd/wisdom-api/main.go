@@ -52,7 +52,7 @@ func main() {
 		return
 	}
 
-	server := api.NewServer(k.Storage, k.Tracker, validator, k.Registry, k.Chat, k.REM, k.Orchestrator, k.Scheduler, k.Ingestor, k.Mapper, k.Hierarchy)
+	server := api.NewServer(k.Storage, k.Tracker, validator, k.Registry, k.Chat, k.REM, k.Orchestrator, k.Scheduler, k.Ingestor, k.Mapper, k.Hierarchy, k.Learning)
 
 	mux := http.NewServeMux()
 	server.RegisterHandlers(mux)

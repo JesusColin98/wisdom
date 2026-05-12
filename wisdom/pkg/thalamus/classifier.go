@@ -52,7 +52,7 @@ func (c *IntentClassifierV2) Classify(ctx context.Context, query string) (Intent
 	defer span.End()
 
 	prompt := fmt.Sprintf(`Analyze the user query and classify it into:
-- INTENT: CODE (files/symbols), RELATIONAL (mesh/causal), HIERARCHY (tree/org), STAR (entity-centric/risk), KG (complex factual), GENERAL.
+- INTENT: CODE (files/symbols), RELATIONAL (mesh/causal), HIERARCHY (tree/org), STAR (entity-centric/risk), KG (complex factual), LEARNING (if user wants to learn a topic or create a roadmap), GENERAL.
 - STRICTNESS: STRICT (facts/rules) or DYNAMIC (creative/brainstorming).
 
 Query: "%s"

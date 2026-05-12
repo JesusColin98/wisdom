@@ -571,6 +571,49 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	s.sendJSON(w, http.StatusOK, map[string]string{"status": "CONFIG_UPDATED"})
 }
 
+func (s *Server) handleGenerateLearningPath(w http.ResponseWriter, r *http.Request) {
+	ctx, span := observability.Tracer.Start(r.Context(), "api.handleGenerateLearningPath")
+	defer span.End()
+
+	var req struct {
+		Type    string `json:"type"` // "topic", "youtube", "document"
+		Topic   string `json:"topic,omitempty"`
+		URL     string `json:"url,omitempty"`
+		Content string `json:"content,omitempty"`
+		UserID  string `json:"user_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		s.sendJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	if req.UserID == "" {
+		req.UserID = "anonymous"
+	}
+
+	var path *thalamus.LearningPath
+	var err error
+
+	switch req.Type {
+	case "topic":
+		path, err = s.learning.GenerateFromTopic(ctx, req.Topic, req.UserID)
+	case "youtube":
+		path, err = s.learning.GenerateFromYouTube(ctx, req.URL, req.UserID)
+	case "document":
+		path, err = s.learning.GenerateFromDocument(ctx, req.Topic, req.Content, req.UserID)
+	default:
+		s.sendJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid generation type"})
+		return
+	}
+
+	if err != nil {
+		s.sendJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, path)
+}
+
 func (s *Server) broadcastMetabolism(sessionID string) {
 	report := s.tracker.Efficiency(sessionID)
 	s.wsManager.Broadcast(WSMessage{

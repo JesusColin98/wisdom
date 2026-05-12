@@ -243,6 +243,11 @@ function AppContent() {
             <MetabolismView />
           </div>
         )}
+        {view === 'LEARNING' && (
+          <div className="h-full overflow-hidden">
+            <LearningView />
+          </div>
+        )}
         {view === 'CHAT' && (
           <div className="h-full overflow-hidden">
             <ChatView onDistill={handleEditNode} />

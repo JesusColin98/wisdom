@@ -33,7 +33,7 @@ type Orchestrator struct {
 }
 
 // NewOrchestrator creates a new Thalamic Orchestrator.
-func NewOrchestrator(cx *cortex.Cortex, c *Cache, inquirer *InquirerService, reinforce *ReinforcementService, classifier *IntentClassifierV2, grepRAG *cerebellum.GrepRAGAgent, identity *IdentityService, hierarchy *HierarchyManager, risk *RiskEngine, sre *SREAssistant) *Orchestrator {
+func NewOrchestrator(cx *cortex.Cortex, c *Cache, inquirer *InquirerService, reinforce *ReinforcementService, classifier *IntentClassifierV2, grepRAG *cerebellum.GrepRAGAgent, identity *IdentityService, hierarchy *HierarchyManager, risk *RiskEngine, sre *SREAssistant, learning *LearningEngine) *Orchestrator {
 	return &Orchestrator{
 		cortex:     cx,
 		cache:      c,
@@ -45,6 +45,7 @@ func NewOrchestrator(cx *cortex.Cortex, c *Cache, inquirer *InquirerService, rei
 		hierarchy:  hierarchy,
 		risk:       risk,
 		sre:        sre,
+		learning:   learning,
 		Config:     DefaultConfig(),
 	}
 }
