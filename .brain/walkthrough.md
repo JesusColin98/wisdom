@@ -17,8 +17,8 @@
 *   **CI/CD & DevOps:** Created `cmd/researcher/main.go` and `Dockerfile.researcher`. Updated `cloudbuild.yaml` to build the new image, and `terraform/main.tf` to configure the Researcher as a `google_cloud_run_v2_job` instead of a service, allowing on-demand execution.
 
 ## [2026-05-12] Infrastructure & CI/CD Refinement
-*   **Fix:** Downgraded Go version from `1.25` to `1.24` across all `Dockerfiles`, `go.mod`, and `cloudbuild.yaml` to resolve Docker Hub manifest errors.
-*   **Fix:** Downgraded `github.com/jackc/pgx/v5` from `v5.9.2` to `v5.7.2` because the newer version strictly required the unavailable Go `1.25` runtime, breaking the Cloud Build `go mod download` step.
+*   **Fix (Docker Hub Compatibility):** Discovered that official `golang` Docker images dropped support for `bullseye` in Go 1.25. Upgraded all Dockerfiles and `cloudbuild.yaml` to use the valid `golang:1.25-bookworm` base image.
+*   **Fix (Dependency Conflict):** Re-upgraded the local `go.mod` to `go 1.25.0` to satisfy the strict requirements of the `github.com/nats-io/nats.go@v1.52.0` package, completing the fix.
 *   **Cleanup:** Purged the remaining legacy architecture packages (`pkg/mcp`, `pkg/sensory`, `pkg/api`, `pkg/kernel`) and their respective entry points (`cmd/wisdom-api`, `cmd/wisdom-mcp`). These files were referencing deleted structures from Cortex and violating the new distributed microservices contract.
 *   **Researcher & MOC Completion:** Successfully implemented the deterministic ingestion pipeline and the Obsidian MOC generator for flexible learning paths.
 *   **Status:** All 4 tracks (Cortex, Thalamus, Cerebellum, Researcher) are fully implemented, tested, and integrated into the CI/CD pipeline.

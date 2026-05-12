@@ -19,7 +19,7 @@ COPY . .
 # Remove stubs and compile proto
 RUN rm -f pkg/cortex/v1/stubs.go || true
 RUN export PATH="$PATH:$(go env GOPATH)/bin" && \
-    protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/cortex.proto
+    protoc --go_out=. --go_opt=module=github.com/google/wisdom --go-grpc_out=. --go-grpc_opt=module=github.com/google/wisdom proto/cortex.proto
 
 # Build the Go app
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o cortex-server ./cmd/cortex/main.go
