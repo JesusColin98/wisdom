@@ -1,34 +1,30 @@
-# Wisdom Cognitive Runtime Refactoring: Cerebellum Workers
+# Wisdom Cognitive Runtime Refactoring: Researcher & MOC
 
 ## Objective
-Build the `Cerebellum` (Track 03) worker service. Cerebellum operates purely asynchronously in the background. It is responsible for event ingestion via NATS JetStream, database maintenance through the REM Cycle (Garbage Collection and Consolidation), and knowledge graph integrity checking (Conflict Resolution).
+Build the `Researcher` and `Curriculum` services (Track 04). The Researcher acts as the deterministic data ingestion pipeline, scraping content and publishing it to NATS. The Curriculum module manages learning paths dynamically by formatting `Concept` nodes as Obsidian Maps of Content (MOCs) using markdown and `[[Wikilinks]]`.
 
 ## Architecture
-
 *   **Language**: Go
-*   **Mode**: Background Worker (No inbound HTTP/gRPC traffic, connects to message broker and DB).
-*   **Message Broker**: NATS JetStream
-*   **Event Standard**: CloudEvents
-*   **Dependencies**: Connects directly to the PostgreSQL Database (or via Cortex gRPC depending on specific operations, but direct DB access for bulk TTL deletion is more efficient). We will use direct DB access for REM cycle, and gRPC for ingesting new nodes.
+*   **Components**: 
+    *   `pkg/researcher`: Deterministic scraper and NATS publisher.
+    *   `pkg/curriculum`: MOC generator and updater.
+*   **Message Broker**: NATS JetStream (Publisher)
+*   **Target Output**: CloudEvents JSON (Researcher) and Obsidian-compatible Markdown (Curriculum).
 
 ## Phased Approach
 
-### Phase 1: NATS Setup & Ingestion
-1.  Configure the NATS connection and JetStream context.
-2.  Implement a subscriber for the `wisdom.knowledge.ingested` topic.
-3.  Implement an event handler that validates the CloudEvent payload and forwards it to `Cortex` via the gRPC `Memorize` endpoint.
+### Phase 1: Deterministic Researcher
+1.  Scaffold `pkg/researcher`.
+2.  Implement a basic HTTP scraper (e.g., fetching a webpage and converting its core content to Markdown).
+3.  Implement the NATS Publisher.
+4.  Construct the `wisdom.knowledge.ingested` CloudEvent payload according to `CONTRACTS.md` and publish it.
 
-### Phase 2: The REM Cycle (Cron Job)
-1.  Implement a periodic runner (ticker).
-2.  **Garbage Collection**: Directly query the PostgreSQL database to `DELETE FROM nodes WHERE type = 'Signal' AND ttl < NOW()`.
-3.  **Consolidation**: Implement logic to promote heavily referenced `Signals` to `Facts`.
+### Phase 2: Obsidian MOC Generator (Curriculum)
+1.  Scaffold `pkg/curriculum`.
+2.  Implement logic to create a new `Concept` node payload containing an initial MOC structure.
+3.  Implement logic to *update* an existing MOC by parsing the Markdown payload and appending a new `[[Wikilink]]`.
 
-### Phase 3: Integrity Checker
-1.  Implement a routine to scan for duplicate or contradicting facts.
-2.  If found, interact with the DB to create a `CONTRADICTS` edge and set `requires_human = true`.
-3.  Publish the `wisdom.memory.conflict_detected` event back to NATS.
-
-### Phase 4: Integration
-1.  Add `wisdom-cerebellum` build step to `cloudbuild.yaml`.
-2.  Create `Dockerfile.cerebellum`.
-3.  Update Terraform to provision a NATS instance (or use a managed one) and deploy the Cerebellum worker.
+### Phase 3: Integration
+1.  Create `cmd/researcher/main.go` entry point.
+2.  Create `Dockerfile.researcher`.
+3.  Update `cloudbuild.yaml` and `terraform/main.tf` to deploy the Researcher service (typically as a Cloud Run Job or scheduled service, though we'll define it as a service for consistency).
