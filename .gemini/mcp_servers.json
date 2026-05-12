@@ -1,10 +1,12 @@
 {
   "mcpServers": {
     "wisdom": {
-      "command": "python",
-      "args": ["C:/Users/jesus/wisdom/wisdom/wisdom_bridge.py"],
+      "command": "C:/Users/jesus/wisdom/wisdom/wisdom/wisdom-mcp.exe",
+      "args": [],
       "env": {
-        "WISDOM_SERVICE_URL": "https://wisdom-engine-3yamn3zhlq-uc.a.run.app"
+        "WISDOM_DB_PATH": "C:/Users/jesus/wisdom/wisdom/wisdom.db",
+        "GOOGLE_CLOUD_PROJECT": "jesuscolin2025-678c7",
+        "GOOGLE_CLOUD_LOCATION": "us-central1"
       }
     }
   }
