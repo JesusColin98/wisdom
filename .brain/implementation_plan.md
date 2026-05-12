@@ -28,3 +28,10 @@ Build the `Researcher` and `Curriculum` services (Track 04). The Researcher acts
 1.  Create `cmd/researcher/main.go` entry point.
 2.  Create `Dockerfile.researcher`.
 3.  Update `cloudbuild.yaml` and `terraform/main.tf` to deploy the Researcher service (typically as a Cloud Run Job or scheduled service, though we'll define it as a service for consistency).
+
+### Phase 4: Gap Clearance (Current Focus)
+1.  **Recall Optimization**: Implement batched neighbor fetching in `postgres_engine.go` to populate the `Neighbors` array in `CognitionResponse`.
+2.  **DevOps Automation**: Create `scripts/setup_dev_env.ps1` for `protoc` and plugin installation.
+3.  **Infra Hardening**: 
+    *   Configure GCS remote backend for Terraform.
+    *   Restrict Cloud Run invoker access to specific service accounts (IAM isolation).

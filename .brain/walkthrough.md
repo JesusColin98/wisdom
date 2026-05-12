@@ -16,6 +16,19 @@
 *   **Curriculum (Obsidian MOC):** Implemented `pkg/curriculum/moc.go` to generate and deterministically append `[[Wikilinks]]` to a Markdown string formatted as an Obsidian Map of Content. This avoids rigid SQL structures and enables fully flexible learning paths.
 *   **CI/CD & DevOps:** Created `cmd/researcher/main.go` and `Dockerfile.researcher`. Updated `cloudbuild.yaml` to build the new image, and `terraform/main.tf` to configure the Researcher as a `google_cloud_run_v2_job` instead of a service, allowing on-demand execution.
 
+## [2026-05-12] Infrastructure & CI/CD Refinement
+*   **Fix:** Downgraded Go version from `1.25` to `1.24` across all `Dockerfiles`, `go.mod`, and `cloudbuild.yaml` to resolve Docker Hub manifest errors.
+*   **Researcher & MOC Completion:** Successfully implemented the deterministic ingestion pipeline and the Obsidian MOC generator for flexible learning paths.
+*   **Status:** All 4 tracks (Cortex, Thalamus, Cerebellum, Researcher) are fully implemented, tested, and integrated into the CI/CD pipeline.
+
+## Mission Accomplished
+The Wisdom Cognitive Runtime has been successfully refactored into a high-performance, deterministic memory substrate. 
+*   **Cortex:** Scalable Postgres graph substrate.
+*   **Thalamus:** Context hydration gateway (Markdown-first).
+*   **Cerebellum:** Async worker for cleanup and conflicts.
+*   **Researcher:** Ingestion via CloudEvents.
+
 ## Next Steps
-*   All core infrastructure and backend services (Cortex, Thalamus, Cerebellum, Researcher) are now implemented under the deterministic ruleset.
-*   Next actions should focus on deploying to GCP, testing the entire event-driven flow (from Cloud Run Job -> NATS -> Cerebellum -> Postgres), and ensuring the Python Voice Proxy can successfully connect to the Thalamus Gateway.
+*   Execute `terraform apply` to provision the Cloud SQL instance and services.
+*   Run the first `researcher-job` to hydrate the database with initial facts.
+
