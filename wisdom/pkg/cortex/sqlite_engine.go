@@ -507,6 +507,31 @@ func (e *SQLiteEngine) ListDueNodes(ctx context.Context, namespaceID string, lim
 	return nodes, nil
 }
 
+func (e *SQLiteEngine) CreateNamespace(ctx context.Context, ns *Namespace) error {
+	query := `INSERT OR IGNORE INTO namespaces (id, name, description) VALUES (?, ?, ?)`
+	_, err := e.db.ExecContext(ctx, query, ns.ID, ns.Name, ns.Description)
+	return err
+}
+
+func (e *SQLiteEngine) ListNamespaces(ctx context.Context) ([]Namespace, error) {
+	query := `SELECT id, name, description, created_at FROM namespaces ORDER BY name ASC`
+	rows, err := e.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	namespaces := []Namespace{}
+	for rows.Next() {
+		var ns Namespace
+		if err := rows.Scan(&ns.ID, &ns.Name, &ns.Description, &ns.CreatedAt); err != nil {
+			return nil, err
+		}
+		namespaces = append(namespaces, ns)
+	}
+	return namespaces, nil
+}
+
 func (e *SQLiteEngine) ResolvePointer(ctx context.Context, pointer string) (string, error) {
 	// 1. Synonym check (Highest priority for aliases)
 	query := `

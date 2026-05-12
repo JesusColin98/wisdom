@@ -2,7 +2,10 @@
   "mcpServers": {
     "wisdom": {
       "command": "python",
-      "args": ["C:/Users/jesus/wisdom/wisdom/wisdom_bridge.py"]
+      "args": ["C:/Users/jesus/wisdom/wisdom/wisdom_bridge.py"],
+      "env": {
+        "WISDOM_SERVICE_URL": "https://wisdom-engine-3yamn3zhlq-uc.a.run.app"
+      }
     }
   }
 }

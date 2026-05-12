@@ -228,6 +228,31 @@ func (e *PostgresEngine) ListDueNodes(ctx context.Context, namespaceID string, l
 	return nodes, nil
 }
 
+func (e *PostgresEngine) CreateNamespace(ctx context.Context, ns *Namespace) error {
+	query := `INSERT INTO namespaces (id, name, description) VALUES ($1, $2, $3) ON CONFLICT(id) DO NOTHING`
+	_, err := e.db.ExecContext(ctx, query, ns.ID, ns.Name, ns.Description)
+	return err
+}
+
+func (e *PostgresEngine) ListNamespaces(ctx context.Context) ([]Namespace, error) {
+	query := `SELECT id, name, description, created_at FROM namespaces ORDER BY name ASC`
+	rows, err := e.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	namespaces := []Namespace{}
+	for rows.Next() {
+		var ns Namespace
+		if err := rows.Scan(&ns.ID, &ns.Name, &ns.Description, &ns.CreatedAt); err != nil {
+			return nil, err
+		}
+		namespaces = append(namespaces, ns)
+	}
+	return namespaces, nil
+}
+
 func (e *PostgresEngine) UpdateConfidence(ctx context.Context, nodeID string, delta float64) error {
 	query := `UPDATE nodes SET confidence_score = LEAST(1.0, GREATEST(0.0, confidence_score + $1)), updated_at = CURRENT_TIMESTAMP WHERE id = $2`
 	_, err := e.db.ExecContext(ctx, query, delta, nodeID)

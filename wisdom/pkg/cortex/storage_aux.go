@@ -8,13 +8,12 @@ import (
 
 // CreateNamespace ensures a namespace exists.
 func (c *Cortex) CreateNamespace(ctx context.Context, ns *Namespace) error {
-	db := c.DB()
-	if db == nil {
-		return fmt.Errorf("no database connection available")
-	}
-	query := `INSERT OR IGNORE INTO namespaces (id, name, description) VALUES (?, ?, ?)`
-	_, err := db.ExecContext(ctx, query, ns.ID, ns.Name, ns.Description)
-	return err
+	return c.engine.CreateNamespace(ctx, ns)
+}
+
+// ListNamespaces retrieves all available namespaces.
+func (c *Cortex) ListNamespaces(ctx context.Context) ([]Namespace, error) {
+	return c.engine.ListNamespaces(ctx)
 }
 
 // GetHistory retrieves the version history for a given node.

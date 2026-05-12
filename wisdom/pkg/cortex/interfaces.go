@@ -18,6 +18,8 @@ type NodeStore interface {
 	UpdateImpact(ctx context.Context, nodeID string, delta float64) error
 	MoveToCold(ctx context.Context, nodeID string) error
 	RecallToHot(ctx context.Context, nodeID string) error
+	CreateNamespace(ctx context.Context, ns *Namespace) error
+	ListNamespaces(ctx context.Context) ([]Namespace, error)
 }
 
 // VectorStore defines the interface for semantic embedding management and search.
