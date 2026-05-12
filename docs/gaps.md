@@ -20,13 +20,23 @@ During the deep architectural analysis of the project, several components were i
 - **The Gap:** To offer Wisdom as a pure "Memory-as-a-Service", the Go MCP Server (`wisdom-mcp`) should be the primary product surface for external LLMs. The frontend (`portal`) should serve as an agnostic visualizer of the `wisdom.db`.
 - **Action:** Expose the MCP logic robustly so external tools (learning English, math, etc.) can hook into Wisdom's storage layer dynamically, and ensure the UI can visualize any arbitrary namespace.
 
----
-## ✅ Resolved / Deleted Gaps
+## 4. Current Architectural Gaps (In Progress)
 
-### `cerebellum_service/` -> **DELETED**
-- **Issue:** Redundant Python microservice referencing Graph Mamba and GAT models, superseded by `pkg/cerebellum/` in Go.
-- **Resolution:** Directory fully removed from the repository.
+### Redundant MCP Tool Definitions
+- **Issue**: `scripts/tools/wisdom_bridge.py` and `chat_service/main.py` both define tool sets for Wisdom.
+- **Risk**: Inconsistent tool behavior across different access methods.
+- **Action**: Consolidate into a single configuration-driven tool registry.
 
-### `wisdom_bridge.py` -> **MOVED TO SCRIPTS**
-- **Issue:** Obsolete Python script bridging Gemini CLI.
-- **Resolution:** Moved to `scripts/tools/` for archiving, removing it from the execution path.
+### SQLite over GCS FUSE (Concurrency)
+- **Issue**: High-latency writes and lock contention in multi-instance environments.
+- **Risk**: `database is locked` errors during heavy REM cycles or concurrent user updates.
+- **Action**: Monitor and prepare migration to Firestore/Cloud Spanner if horizontal scaling is required.
+
+### Authentication for WebSockets
+- **Issue**: `wisdom-chat` lacks explicit token verification for the incoming WebSocket connection from the Portal.
+- **Risk**: Unauthorized access to the Gemini Live session if the URL is discovered.
+- **Action**: Integrate Firebase Auth SDK in the Python proxy.
+
+### Telemetry & Spans
+- **Issue**: No cross-service tracing between the Python proxy and Go backend.
+- **Action**: Implement OpenTelemetry tracing to measure latency in the multimodal loop.

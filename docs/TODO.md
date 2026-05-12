@@ -14,11 +14,13 @@ Goal: Deepen the graph traversal, visual intelligence, and cloud durability.
 - [ ] **Cross-Cloud Sync / Concurrency**: Evaluate SQLite concurrency locks over GCS FUSE. If scaling horizontally creates write contention, migrate Core Logic to Cloud Spanner or Firestore.
 
 ### 🧠 Agent Multimodality
-- [ ] **Live Audio UI**: Verify real-time audio/video feedback loop in the Portal connects properly to the decoupled `wisdom-chat` service.
-- [ ] **Vision Processing**: Ensure JPEG frames sent from Portal are correctly routed to the Gemini 2.0 pipeline.
+- [x] **Live Audio UI**: Integrated real-time audio/video feedback loop in `ChatView.jsx`.
+- [x] **Vision Processing**: Frames sent from Portal are correctly routed to the Gemini 2.0 pipeline in `wisdom-chat`.
+- [ ] **WebSocket Auth**: Implement Firebase Auth verification for the voice proxy.
 
 ## 🎨 Phase 3: Frontend UX & Aesthetics (IN PROGRESS)
 ### 🧪 Portal Enhancements
-- [ ] **Hierarchy Explorer**: Add "Drill Down" / "Zoom Out" using `/cortex/lineage`.
+- [x] **Hierarchy Explorer**: Implemented "Drill Down" / "Zoom Out" in `GraphView` using `/cortex/lineage`.
 - [x] **Stratum Visuals**: Updated `GraphView` with glowing high-impact nodes and stratum labels.
 - [x] **Hallucination Guard**: Added verification UI in `ChatView` for ungrounded text.
+- [ ] **Telemetry Dashboard**: Add a small diagnostic panel to the portal to monitor WebSocket latency and buffer health.

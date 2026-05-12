@@ -1,0 +1,119 @@
+openapi: 3.0.0
+info:
+  title: Wisdom Knowledge Runtime API
+  description: A pattern-aware cognitive engine for SRE and Knowledge Management.
+  version: 1.0.0
+servers:
+  - url: https://wisdom-unified-3yamn3zhlq-uc.a.run.app
+    description: Production Wisdom Engine
+
+paths:
+  /chat:
+    post:
+      summary: Grounded Chat
+      description: Sends a message to the Wisdom assistant and gets a grounded response from the knowledge graph.
+      operationId: groundedChat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: The user query.
+                user_id:
+                  type: string
+                  description: Optional user identifier.
+              required:
+                - message
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                  context_nodes:
+                    type: array
+                    items:
+                      type: object
+
+  /cortex/recall:
+    post:
+      summary: Recall Wisdom
+      description: Retrieves pattern-aware context from the knowledge base using semantic search and graph seeds.
+      operationId: recallWisdom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                seeds:
+                  type: array
+                  items:
+                    type: string
+                uncertainty:
+                  type: number
+              required:
+                - query
+      responses:
+        '200':
+          description: Context retrieved
+
+  /cortex/risk:
+    get:
+      summary: Calculate Risk
+      description: Analyzes system risk for a given entity based on its connections in the graph.
+      operationId: calculateRisk
+      parameters:
+        - name: node_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            default: 2
+      responses:
+        '200':
+          description: Risk analysis result
+
+  /cortex/lineage:
+    get:
+      summary: Get Lineage
+      description: Fetches the parent-child lineage of a specific node for drill-down visualization.
+      operationId: getLineage
+      parameters:
+        - name: node_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lineage data
+
+  /rem:
+    post:
+      summary: Rapid Epistemic Metabolism
+      description: Triggers a REM cycle to consolidate ephemeral session nodes into long-term memory.
+      operationId: triggerREM
+      parameters:
+        - name: session_id
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metabolism complete
