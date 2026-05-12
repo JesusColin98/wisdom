@@ -4,7 +4,7 @@ info:
   description: A pattern-aware cognitive engine for SRE and Knowledge Management.
   version: 1.0.0
 servers:
-  - url: https://wisdom-unified-3yamn3zhlq-uc.a.run.app
+  - url: https://wisdom-engine-3yamn3zhlq-uc.a.run.app
     description: Production Wisdom Engine
 
 paths:
