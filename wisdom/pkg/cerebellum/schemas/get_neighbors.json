@@ -1,8 +1,0 @@
-{
-  "type": "object",
-  "properties": {
-    "node_id": {"type": "string"},
-    "depth": {"type": "integer", "minimum": 1}
-  },
-  "required": ["node_id"]
-}
