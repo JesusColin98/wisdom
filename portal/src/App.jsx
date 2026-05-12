@@ -166,7 +166,7 @@ function AppContent() {
           <div className="space-y-2">
             <div className="px-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Thought Spaces</div>
             <div className="grid grid-cols-1 gap-1.5">
-              {['ns-engineering', 'ns-infrastructure', 'ns-incident'].map(ns => (
+              {(namespaces && namespaces.length > 0 ? namespaces : ['ns-general']).map(ns => (
                 <button 
                   key={ns}
                   onClick={() => setActiveNamespace(ns)}
@@ -275,4 +275,6 @@ function App() {
 }
 
 export default App;
+
+p;
 

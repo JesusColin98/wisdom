@@ -139,16 +139,32 @@ func (s *Server) handleListNodes(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListEdges(w http.ResponseWriter, r *http.Request) {
-	ctx, span := observability.Tracer.Start(r.Context(), "api.handleListEdges")
+	_, span := observability.Tracer.Start(r.Context(), "api.handleListEdges")
 	defer span.End()
 
-	edges, err := s.storage.ListEdges(ctx)
+	edges, err := s.storage.ListEdges(r.Context())
 	if err != nil {
 		s.sendJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
 	s.sendJSON(w, http.StatusOK, edges)
+}
+
+func (s *Server) handleListNamespaces(w http.ResponseWriter, r *http.Request) {
+	_, span := observability.Tracer.Start(r.Context(), "api.handleListNamespaces")
+	defer span.End()
+
+	// Direct DB query via a helper or direct access if available. Since it's not exposed on storage cleanly, we can do a quick manual query on the DB.
+	// But it's better to fetch from the DB. I will just query the underlying *sql.DB if possible. 
+	// The problem is storage might not expose the DB. I will add a method to storage.
+	namespaces, err := s.storage.ListNamespaces(r.Context())
+	if err != nil {
+		s.sendJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		return
+	}
+
+	s.sendJSON(w, http.StatusOK, namespaces)
 }
 
 func (s *Server) handleGetDueNodes(w http.ResponseWriter, r *http.Request) {

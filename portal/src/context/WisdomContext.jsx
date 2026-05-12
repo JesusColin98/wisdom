@@ -6,6 +6,7 @@ export const WisdomProvider = ({ children }) => {
   const [view, setView] = useState('GRAPH');
   const [rigor, setRigor] = useState('LOW');
   const [activeNamespace, setActiveNamespace] = useState('ns-engineering');
+  const [namespaces, setNamespaces] = useState([]);
   const [user, setUser] = useState({ ldap: 'anonymous', role: 'USER', is_admin: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -43,23 +44,55 @@ export const WisdomProvider = ({ children }) => {
 
     // Shared WebSocket
     const socket = new WebSocket(`${WS_BASE}/ws`);
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setLastEvent(data);
+    
+    socket.onopen = () => {
+      console.log("WebSocket connected to:", WS_BASE);
+      setError(null);
     };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        setLastEvent(data);
+      } catch (err) {
+        console.error("Failed to parse WS message:", err);
+      }
+    };
+
+    socket.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      setError("WebSocket connection failed");
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
     socketRef.current = socket;
 
     return () => {
       clearTimeout(timer);
-      socket.close();
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close();
+      }
     };
   }, [WS_BASE, fetchUser]);
+
+  const sendWS = useCallback((type, payload) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type, payload }));
+      return true;
+    }
+    console.warn("WebSocket not open. ReadyState:", socketRef.current?.readyState);
+    return false;
+  }, []);
 
   return (
     <WisdomContext.Provider value={{
       view, setView,
       rigor, setRigor,
       activeNamespace, setActiveNamespace,
+      namespaces,
       user, setUser,
       loading, setLoading,
       error, setError,
@@ -68,7 +101,8 @@ export const WisdomProvider = ({ children }) => {
       WS_BASE,
       AGENT_WS,
       lastEvent,
-      socketRef
+      socketRef,
+      sendWS
     }}>
       {children}
     </WisdomContext.Provider>
