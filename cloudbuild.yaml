@@ -27,23 +27,31 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest', '-f', 'wisdom/Dockerfile.cerebellum', './wisdom']
 
-# 5. Build the chat service (Python Voice Proxy)
+# 5. Build the Researcher Job (Go)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-researcher:latest', '-f', 'wisdom/Dockerfile.researcher', './wisdom']
+
+# 6. Build the chat service (Python Voice Proxy)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest', './chat_service']
 
-# 6. Push the Cortex image
+# 7. Push the Cortex image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest']
 
-# 7. Push the Thalamus image
+# 8. Push the Thalamus image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest']
 
-# 8. Push the Cerebellum image
+# 9. Push the Cerebellum image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest']
 
-# 9. Push the Chat image
+# 10. Push the Researcher image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-researcher:latest']
+
+# 11. Push the Chat image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest']
 
@@ -51,6 +59,7 @@ images:
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest'
+- 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-researcher:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest'
 
 options:
