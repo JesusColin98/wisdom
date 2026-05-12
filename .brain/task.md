@@ -11,9 +11,9 @@
 - [x] Implement MOC append logic (inserting new `[[Wikilink]]` into existing markdown).
 
 ## Phase 5: Gap Clearance
-- [ ] Implement batched node fetching for `Recall` in `postgres_engine.go`.
-- [ ] Update `server.go` to return full neighbor nodes in `Recall`.
-- [ ] Create `scripts/setup_dev_env.ps1` (Windows friendly) and `sh` versions.
-- [ ] Add `backend "gcs"` to `terraform/main.tf`.
-- [ ] Remove `allUsers` invoker role and use service-to-service IAM.
+- [x] Implement batched node fetching for `Recall` in `postgres_engine.go`.
+- [x] Update `server.go` to return full neighbor nodes in `Recall`.
+- [x] Create `scripts/setup_dev_env.ps1` (Windows friendly) and `sh` versions.
+- [x] Add `backend "gcs"` placeholder to `terraform/main.tf`.
+- [x] Remove `allUsers` invoker role for Cortex and use service-to-service IAM.
 

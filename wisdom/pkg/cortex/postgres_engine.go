@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/lib/pq"
 )
 
 // PostgresEngine implements StorageEngine using PostgreSQL with the Universal Graph Schema.
@@ -154,7 +155,7 @@ func (e *PostgresEngine) GetNodes(ctx context.Context, ids []string) ([]*Node, e
 		FROM nodes
 		WHERE id = ANY($1)
 	`
-	rows, err := e.db.QueryContext(ctx, query, ids)
+	rows, err := e.db.QueryContext(ctx, query, pq.Array(ids))
 	if err != nil {
 		return nil, err
 	}
