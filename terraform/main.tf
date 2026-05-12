@@ -25,23 +25,60 @@ resource "google_secret_manager_secret_iam_member" "gemini_api_key_access" {
   member    = "serviceAccount:${google_service_account.wisdom_sa.email}"
 }
 
-# 3. GCS Bucket for SQLite Persistence (GCS FUSE)
-resource "google_storage_bucket" "wisdom_db_bucket" {
-  name          = "${var.project_id}-wisdom-cortex-db"
-  location      = var.region
-  force_destroy = false
-  uniform_bucket_level_access = true
+# 3. Cloud SQL PostgreSQL Instance for Cortex Substrate
+resource "google_sql_database_instance" "cortex_db_instance" {
+  name             = "${var.project_id}-cortex-pg"
+  database_version = "POSTGRES_15"
+  region           = var.region
+
+  settings {
+    tier = "db-f1-micro" # Use appropriate tier for production
+    ip_configuration {
+      ipv4_enabled = true # Keep true if Cloud Run needs public IP access without VPC connector
+    }
+  }
+
+  deletion_protection = false # Set to true in real production
 }
 
-resource "google_storage_bucket_iam_member" "wisdom_bucket_access" {
-  bucket = google_storage_bucket.wisdom_db_bucket.name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${google_service_account.wisdom_sa.email}"
+resource "google_sql_database" "cortex_db" {
+  name     = "cortexdb"
+  instance = google_sql_database_instance.cortex_db_instance.name
 }
 
-# 4. Cloud Run Service: Wisdom Unified (Go Engine + Portal)
-resource "google_cloud_run_v2_service" "wisdom_unified" {
-  name     = "wisdom-unified"
+resource "random_password" "cortex_db_password" {
+  length  = 16
+  special = true
+}
+
+resource "google_sql_user" "cortex_db_user" {
+  name     = "cortexuser"
+  instance = google_sql_database_instance.cortex_db_instance.name
+  password = random_password.cortex_db_password.result
+}
+
+# Store DB Connection String in Secret Manager
+resource "google_secret_manager_secret" "cortex_db_conn" {
+  secret_id = "CORTEX_DB_CONN"
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret_version" "cortex_db_conn_version" {
+  secret      = google_secret_manager_secret.cortex_db_conn.id
+  secret_data = "postgres://${google_sql_user.cortex_db_user.name}:${random_password.cortex_db_password.result}@${google_sql_database_instance.cortex_db_instance.public_ip_address}:5432/${google_sql_database.cortex_db.name}?sslmode=disable"
+}
+
+resource "google_secret_manager_secret_iam_member" "cortex_db_conn_access" {
+  secret_id = google_secret_manager_secret.cortex_db_conn.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.wisdom_sa.email}"
+}
+
+# 4. Cloud Run Service: Cortex gRPC Substrate
+resource "google_cloud_run_v2_service" "wisdom_cortex" {
+  name     = "wisdom-cortex"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
 
@@ -49,32 +86,25 @@ resource "google_cloud_run_v2_service" "wisdom_unified" {
     service_account = google_service_account.wisdom_sa.email
 
     containers {
-      image = "us-central1-docker.pkg.dev/${var.project_id}/wisdom-repo/wisdom-unified:latest"
+      image = "us-central1-docker.pkg.dev/${var.project_id}/wisdom-repo/wisdom-cortex:latest"
       
       env {
-        name  = "WISDOM_PORT"
-        value = "8080"
+        name  = "PORT"
+        value = "50051"
       }
       env {
-        name  = "WISDOM_DB_PATH"
-        value = "/cortex-storage/wisdom.db"
-      }
-
-      volume_mounts {
-        name       = "cortex-volume"
-        mount_path = "/cortex-storage"
+        name = "DB_CONN_STRING"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.cortex_db_conn.secret_id
+            version = "latest"
+          }
+        }
       }
       
       ports {
-        container_port = 8080
-      }
-    }
-
-    volumes {
-      name = "cortex-volume"
-      gcs {
-        bucket = google_storage_bucket.wisdom_db_bucket.name
-        read_only = false
+        name           = "h2c"
+        container_port = 50051
       }
     }
   }
@@ -94,7 +124,7 @@ resource "google_cloud_run_v2_service" "wisdom_chat" {
       
       env {
         name  = "WISDOM_ENGINE_URL"
-        value = google_cloud_run_v2_service.wisdom_unified.uri
+        value = google_cloud_run_v2_service.wisdom_cortex.uri
       }
 
       env {
@@ -114,20 +144,20 @@ resource "google_cloud_run_v2_service" "wisdom_chat" {
   }
 }
 
-# 6. Make Unified Service Public (Or restrict based on IAP)
-resource "google_cloud_run_service_iam_member" "unified_public_access" {
-  location = google_cloud_run_v2_service.wisdom_unified.location
-  project  = google_cloud_run_v2_service.wisdom_unified.project
-  service  = google_cloud_run_v2_service.wisdom_unified.name
+# 6. Make Cortex Service Public (Or restrict based on IAP/gRPC auth)
+resource "google_cloud_run_service_iam_member" "cortex_public_access" {
+  location = google_cloud_run_v2_service.wisdom_cortex.location
+  project  = google_cloud_run_v2_service.wisdom_cortex.project
+  service  = google_cloud_run_v2_service.wisdom_cortex.name
   role     = "roles/run.invoker"
-  member   = "allUsers" # Replace with IAP Service Account later if restricted
+  member   = "allUsers" # Replace with IAP/Auth later
 }
 
-# 7. Make Chat Service Public (Or restrict based on IAP)
+# 7. Make Chat Service Public
 resource "google_cloud_run_service_iam_member" "chat_public_access" {
   location = google_cloud_run_v2_service.wisdom_chat.location
   project  = google_cloud_run_v2_service.wisdom_chat.project
   service  = google_cloud_run_v2_service.wisdom_chat.name
   role     = "roles/run.invoker"
-  member   = "allUsers" # Replace with IAP Service Account later if restricted
+  member   = "allUsers"
 }

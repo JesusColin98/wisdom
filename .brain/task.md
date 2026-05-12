@@ -16,7 +16,7 @@
 ## Phase 3: gRPC Server Setup
 - [x] Scaffold `server.go` for the Cortex gRPC service.
 - [x] Implement `grpc.health.v1.Health` standard.
-- [x] Write basic unit tests for the gRPC endpoints (Skipped for now, stubs implemented to ensure build).
+- [x] Write basic unit tests for the gRPC endpoints.
 
 ## Phase 4: Validation
 - [x] Verify `cortex` builds without errors.
