@@ -1,7 +1,14 @@
 steps:
+# Build the unified engine (Go + React UI)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-unified:latest', '.']
+
+# Build the chat service (Python Voice Proxy)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest', './chat_service']
+
 images:
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-unified:latest'
+- 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest'
 options:
   logging: CLOUD_LOGGING_ONLY

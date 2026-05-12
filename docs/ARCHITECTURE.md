@@ -117,10 +117,20 @@ Optimized for massive datasets, complex causal chains, and advanced GNN processi
 ## Infrastructure & Deployment
 
 ### Cloud Run Specification
-Wisdom is optimized for Google Cloud Run. Due to the high-performance nature of the Go binary:
-- **Cold Start:** Redundant "Keep-Alive" functions are no longer required. The engine reaches an operational state in <2 seconds.
-- **Identity:** The engine must run under the `nexusstate-mcp-sa` Service Account to maintain access to SRE tools and Secret Manager.
-- **Storage:** The `wisdom.db` file should be stored on a persistent volume mount (GCS Fuse) to ensure semantic continuity across container restarts.
+Wisdom is optimized for Google Cloud Run, utilizing a **decoupled multi-container architecture**:
+
+1. **`wisdom-unified` (The Core Engine):**
+   - Contains the high-performance Go binary and serves the static React UI (`portal`).
+   - **Cold Start:** The engine reaches an operational state in <2 seconds.
+   - **Substrate:** The `wisdom.db` file should be stored on a persistent volume mount (GCS Fuse).
+
+2. **`wisdom-chat` (The Senses):**
+   - A decoupled Python WebSocket proxy running alongside the core engine.
+   - Responsible strictly for maintaining long-lived TCP WebSockets with the **Gemini 2.0 Live API** for real-time PCM audio streaming.
+   - Scaled independently due to the resource profile of long-lived WebSockets vs fast REST requests.
+
+3. **`wisdom-cerebellum` (Inactive):**
+   - Omitted from `cloudbuild.yaml` until Tier 2 Graph Mamba reasoning is enabled.
 
 ### Secret Management
 LLM API keys and backend credentials should never be stored in environment variables. Wisdom is designed to fetch these from **GCP Secret Manager** during the Thalamic initialization phase.
