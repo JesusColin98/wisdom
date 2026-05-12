@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0"
     }
   }
+  # 0. Remote Backend for State Persistence (Recommended)
+  # backend "gcs" {
+  #   bucket = "YOUR_PROJECT_ID-tf-state"
+  #   prefix = "terraform/state"
+  # }
 }
 
 provider "google" {
@@ -32,13 +37,13 @@ resource "google_sql_database_instance" "cortex_db_instance" {
   region           = var.region
 
   settings {
-    tier = "db-f1-micro" # Use appropriate tier for production
+    tier = "db-f1-micro"
     ip_configuration {
-      ipv4_enabled = true # Keep true if Cloud Run needs public IP access without VPC connector
+      ipv4_enabled = true
     }
   }
 
-  deletion_protection = false # Set to true in real production
+  deletion_protection = false
 }
 
 resource "google_sql_database" "cortex_db" {
@@ -173,21 +178,29 @@ resource "google_cloud_run_v2_service" "wisdom_chat" {
   }
 }
 
-# 7. Make Cortex Service Private to VPC/Other services (Optional/Best Practice)
-# For now keeping it public to test, but ideally only Thalamus talks to Cortex
-resource "google_cloud_run_service_iam_member" "cortex_public_access" {
+# 7. IAM: Internal gRPC Isolation
+# Grant the Wisdom SA permission to invoke Cortex.
+resource "google_cloud_run_service_iam_member" "cortex_internal_access" {
   location = google_cloud_run_v2_service.wisdom_cortex.location
   project  = google_cloud_run_v2_service.wisdom_cortex.project
   service  = google_cloud_run_v2_service.wisdom_cortex.name
   role     = "roles/run.invoker"
-  member   = "allUsers" # Replace with specific service account later
+  member   = "serviceAccount:${google_service_account.wisdom_sa.email}"
 }
 
-# 8. Make Thalamus Service Public
+# 8. IAM: Public Access for Gateway and Chat
 resource "google_cloud_run_service_iam_member" "thalamus_public_access" {
   location = google_cloud_run_v2_service.wisdom_thalamus.location
   project  = google_cloud_run_v2_service.wisdom_thalamus.project
   service  = google_cloud_run_v2_service.wisdom_thalamus.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+resource "google_cloud_run_service_iam_member" "chat_public_access" {
+  location = google_cloud_run_v2_service.wisdom_chat.location
+  project  = google_cloud_run_v2_service.wisdom_chat.project
+  service  = google_cloud_run_v2_service.wisdom_chat.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }
@@ -206,11 +219,11 @@ resource "google_cloud_run_v2_job" "wisdom_researcher" {
         
         env {
           name  = "TARGET_URLS"
-          value = "https://example.com" # Can be overridden per execution
+          value = "https://example.com"
         }
         env {
           name  = "NATS_URL"
-          value = "nats://demo.nats.io:4222" # Placeholder
+          value = "nats://demo.nats.io:4222"
         }
       }
     }

@@ -113,8 +113,14 @@ func (s *Server) Recall(ctx context.Context, req *pb.RecallRequest) (*pb.Cogniti
 		inEdgesPB = append(inEdgesPB, edgeToPB(e))
 	}
 
-	// In a real implementation, we would also fetch and convert the neighbor nodes
-	neighborsPB := make([]*pb.Node, 0)
+	neighborsPB := make([]*pb.Node, 0, len(cognition.Nodes))
+	for _, n := range cognition.Nodes {
+		pbNode, err := nodeToPB(n)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to convert neighbor node: %v", err)
+		}
+		neighborsPB = append(neighborsPB, pbNode)
+	}
 
 	return &pb.CognitionResponse{
 		Center:    centerPB,
