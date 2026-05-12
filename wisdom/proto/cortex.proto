@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package wisdom.cortex.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/google/wisdom/pkg/cortex/v1;cortexv1";
+
+service Cortex {
+  rpc Memorize(IngestRequest) returns (NodeID);
+  rpc Recall(RecallRequest) returns (CognitionResponse);
+  rpc QueryHechos(FactRequest) returns (FactList);
+}
+
+message IngestRequest {
+  string id = 1; // Optional, if empty server generates one
+  string type = 2; // Fact, Signal, Concept, User
+  google.protobuf.Struct payload = 3;
+  double confidence = 4;
+  bool requires_human = 5;
+  google.protobuf.Timestamp ttl = 6;
+}
+
+message NodeID {
+  string id = 1;
+}
+
+message RecallRequest {
+  string id = 1;
+  int32 depth = 2; // Default 1 (direct neighbors)
+}
+
+message Node {
+  string id = 1;
+  string type = 2;
+  google.protobuf.Struct payload = 3;
+  double confidence = 4;
+  bool requires_human = 5;
+  google.protobuf.Timestamp ttl = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message Edge {
+  string source_id = 1;
+  string target_id = 2;
+  string relation = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message CognitionResponse {
+  Node center = 1;
+  repeated Edge out_edges = 2;
+  repeated Edge in_edges = 3;
+  repeated Node neighbors = 4;
+}
+
+message FactRequest {
+  string query = 1; // Search term or metadata filter
+  map<string, string> metadata_filters = 2;
+}
+
+message FactList {
+  repeated Node facts = 1;
+}
