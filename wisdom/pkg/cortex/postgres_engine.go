@@ -143,7 +143,46 @@ func (e *PostgresEngine) AddEdge(ctx context.Context, edge *Edge) error {
 	return err
 }
 
-// Recall retrieves a Node and its direct incoming and outgoing edges.
+// GetNodes fetches multiple Nodes by their IDs in a single batch.
+func (e *PostgresEngine) GetNodes(ctx context.Context, ids []string) ([]*Node, error) {
+	if len(ids) == 0 {
+		return []*Node{}, nil
+	}
+
+	query := `
+		SELECT id, type, payload, confidence, requires_human, ttl, created_at, updated_at
+		FROM nodes
+		WHERE id = ANY($1)
+	`
+	rows, err := e.db.QueryContext(ctx, query, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nodes []*Node
+	for rows.Next() {
+		var node Node
+		var payloadRaw []byte
+		var ttl sql.NullTime
+		if err := rows.Scan(
+			&node.ID, &node.Type, &payloadRaw, &node.Confidence, &node.RequiresHuman,
+			&ttl, &node.CreatedAt, &node.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if ttl.Valid {
+			node.TTL = &ttl.Time
+		}
+		if err := json.Unmarshal(payloadRaw, &node.Payload); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, &node)
+	}
+	return nodes, nil
+}
+
+// Recall retrieves a Node and its direct incoming and outgoing edges, plus the neighbor nodes.
 func (e *PostgresEngine) Recall(ctx context.Context, id string) (*CognitionResponse, error) {
 	center, err := e.GetNode(ctx, id)
 	if err != nil {
@@ -165,12 +204,14 @@ func (e *PostgresEngine) Recall(ctx context.Context, id string) (*CognitionRespo
 	}
 	defer outRows.Close()
 
+	neighborIDs := make(map[string]bool)
 	for outRows.Next() {
 		var edge Edge
 		if err := outRows.Scan(&edge.SourceID, &edge.TargetID, &edge.Relation, &edge.CreatedAt); err != nil {
 			return nil, err
 		}
 		response.OutEdges = append(response.OutEdges, &edge)
+		neighborIDs[edge.TargetID] = true
 	}
 
 	// Fetch Incoming Edges
@@ -187,11 +228,21 @@ func (e *PostgresEngine) Recall(ctx context.Context, id string) (*CognitionRespo
 			return nil, err
 		}
 		response.InEdges = append(response.InEdges, &edge)
+		neighborIDs[edge.SourceID] = true
 	}
 
-	// Optional: Fetch the actual nodes for the neighbors
-	// This would require collecting the unique IDs from out_edges and in_edges
-	// and performing a SELECT ... WHERE id IN (...)
-	
+	// Fetch Neighbor Nodes
+	if len(neighborIDs) > 0 {
+		ids := make([]string, 0, len(neighborIDs))
+		for nid := range neighborIDs {
+			ids = append(ids, nid)
+		}
+		neighbors, err := e.GetNodes(ctx, ids)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch neighbors: %w", err)
+		}
+		response.Nodes = neighbors
+	}
+
 	return response, nil
 }
