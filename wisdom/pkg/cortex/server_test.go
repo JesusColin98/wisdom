@@ -86,6 +86,14 @@ func TestServer_Recall(t *testing.T) {
 		WithArgs("center-node-1").
 		WillReturnRows(rowsIn)
 
+	// 4. Mock Neighbor Nodes
+	rowsNeighbors := sqlmock.NewRows([]string{"id", "type", "payload", "confidence", "requires_human", "ttl", "created_at", "updated_at"}).
+		AddRow("target-node-2", "Fact", []byte(`{"data":"neighbor"}`), 1.0, false, nil, now, now)
+
+	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, type, payload, confidence, requires_human, ttl, created_at, updated_at FROM nodes WHERE id = ANY($1)")).
+		WithArgs(sqlmock.AnyArg()).
+		WillReturnRows(rowsNeighbors)
+
 	req := &pb.RecallRequest{
 		Id: "center-node-1",
 	}
@@ -100,6 +108,9 @@ func TestServer_Recall(t *testing.T) {
 	}
 	if len(res.OutEdges) != 1 || res.OutEdges[0].TargetId != "target-node-2" {
 		t.Errorf("Expected 1 outgoing edge to 'target-node-2', got: %v", res.OutEdges)
+	}
+	if len(res.Neighbors) != 1 || res.Neighbors[0].Id != "target-node-2" {
+		t.Errorf("Expected 1 neighbor node 'target-node-2', got: %v", res.Neighbors)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
