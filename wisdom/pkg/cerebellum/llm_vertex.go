@@ -17,9 +17,18 @@ func NewVertexProvider(ctx context.Context, projectID, location string) (*Vertex
 	if err != nil {
 		return nil, err
 	}
+	model := client.GenerativeModel("gemini-3.1-flash-lite")
+	
+	// Enable Google Search Grounding for proactive research
+	model.Tools = []*genai.Tool{
+		{
+			GoogleSearchRetrieval: &genai.GoogleSearchRetrieval{},
+		},
+	}
+
 	return &VertexProvider{
 		client: client,
-		model:  client.GenerativeModel("gemini-3.1-flash-lite"),
+		model:  model,
 	}, nil
 }
 

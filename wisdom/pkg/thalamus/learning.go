@@ -43,7 +43,7 @@ func NewLearningEngine(cx *cortex.Cortex, cb *cerebellum.Runner, coach *Coach, l
 	}
 }
 
-// GenerateFromTopic creates a learning path by searching the web.
+// GenerateFromTopic creates a learning path using grounded LLM research.
 func (e *LearningEngine) GenerateFromTopic(ctx context.Context, topic string, userID string) (*LearningPath, error) {
 	ctx, span := observability.Tracer.Start(ctx, "LearningEngine.GenerateFromTopic")
 	defer span.End()
@@ -54,23 +54,15 @@ func (e *LearningEngine) GenerateFromTopic(ctx context.Context, topic string, us
 
 	contextSummary := e.buildContextSummary(weaknesses, mastered)
 
-	// 2. Proactive Search using cerebellum tool
-	params, _ := json.Marshal(map[string]string{"query": fmt.Sprintf("learning roadmap for %s", topic)})
-	job, err := e.Cerebellum.Run(ctx, "web_search", params)
-	if err != nil {
-		return nil, fmt.Errorf("search failed: %w", err)
-	}
-
-	researchData, _ := json.Marshal(job.Result.Output)
-
-	// 3. Formulate Path
-	pathPrompt := fmt.Sprintf(`Generate a structured JSON learning path for "%s".
+	// 2. Formulate Path - The LLM will use its native Google Search Grounding
+	// to research the latest modules and logical progression.
+	pathPrompt := fmt.Sprintf(`Research and generate a structured JSON learning path for "%s".
 User Context: %s
 
 Guidelines:
-- Modules should be sequential.
-- Concepts should be atomic.
-- Adapt the depth based on the user context (e.g., if they struggle with basics, add more foundational modules).
+- Modules should be sequential and based on authoritative sources.
+- Concepts should be atomic and logic-driven.
+- Adapt the depth based on the user context (e.g., focus on gaps identified).
 
 Respond ONLY with JSON matching this schema:
 {
@@ -80,9 +72,7 @@ Respond ONLY with JSON matching this schema:
     { "title": string, "concepts": [string], "prerequisites": [string] }
   ]
 }
-
-Research Data from Web Search:
-%s`, topic, contextSummary, string(researchData))
+`, topic, contextSummary)
 
 	response, err := e.LLM.Complete(ctx, pathPrompt)
 	if err != nil {
@@ -94,7 +84,7 @@ Research Data from Web Search:
 		return nil, fmt.Errorf("failed to parse path JSON: %w", err)
 	}
 
-	// 4. Anchor to Cortex
+	// 3. Anchor to Cortex
 	if err := e.anchorPathToCortex(ctx, &path, userID); err != nil {
 		return nil, err
 	}
