@@ -23,25 +23,34 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest', '-f', 'wisdom/Dockerfile.thalamus', './wisdom']
 
-# 4. Build the chat service (Python Voice Proxy)
+# 4. Build the Cerebellum Worker (Go)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest', '-f', 'wisdom/Dockerfile.cerebellum', './wisdom']
+
+# 5. Build the chat service (Python Voice Proxy)
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest', './chat_service']
 
-# 5. Push the Cortex image
+# 6. Push the Cortex image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest']
 
-# 6. Push the Thalamus image
+# 7. Push the Thalamus image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest']
 
-# 7. Push the Chat image
+# 8. Push the Cerebellum image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest']
+
+# 9. Push the Chat image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest']
 
 images:
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cortex:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-thalamus:latest'
+- 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-cerebellum:latest'
 - 'us-central1-docker.pkg.dev/${PROJECT_ID}/wisdom-repo/wisdom-chat:latest'
 
 options:

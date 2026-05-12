@@ -192,11 +192,38 @@ resource "google_cloud_run_service_iam_member" "thalamus_public_access" {
   member   = "allUsers"
 }
 
-# 9. Make Chat Service Public
-resource "google_cloud_run_service_iam_member" "chat_public_access" {
-  location = google_cloud_run_v2_service.wisdom_chat.location
-  project  = google_cloud_run_v2_service.wisdom_chat.project
-  service  = google_cloud_run_v2_service.wisdom_chat.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
+# 10. Cloud Run Service: Cerebellum Worker
+# Note: Cloud Run can act as a background worker for NATS if configured to always allocate CPU
+# or if triggered via Pub/Sub instead of NATS. For true background NATS workers on GCP,
+# GKE or a Compute Engine VM is typically used. For this architecture, we define it as Cloud Run
+# but it requires a sidecar or a listener to process NATS events without sleeping.
+resource "google_cloud_run_v2_service" "wisdom_cerebellum" {
+  name     = "wisdom-cerebellum"
+  location = var.region
+  
+  template {
+    service_account = google_service_account.wisdom_sa.email
+
+    containers {
+      image = "us-central1-docker.pkg.dev/${var.project_id}/wisdom-repo/wisdom-cerebellum:latest"
+      
+      env {
+        name  = "CORTEX_GRPC_URL"
+        value = replace(google_cloud_run_v2_service.wisdom_cortex.uri, "https://", "")
+      }
+      env {
+        name = "DB_CONN_STRING"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.cortex_db_conn.secret_id
+            version = "latest"
+          }
+        }
+      }
+      env {
+        name  = "NATS_URL"
+        value = "nats://demo.nats.io:4222" # Placeholder for demo purposes, deploy a real NATS cluster or use PubSub in prod
+      }
+    }
+  }
 }
