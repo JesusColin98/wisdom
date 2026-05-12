@@ -21,3 +21,10 @@
 ## Phase 4: Validation
 - [x] Verify `cortex` builds without errors.
 - [x] Verify no LLM SDKs are imported in the `cortex` package.
+
+## Phase 5: Infrastructure & CI/CD
+- [x] Update `terraform/main.tf` to provision Cloud SQL (Postgres 15).
+- [x] Update `terraform/main.tf` to deploy `wisdom-cortex` to Cloud Run.
+- [x] Create `cmd/cortex/main.go` entry point.
+- [x] Create `Dockerfile.cortex` handling `protoc` generation in the build phase.
+- [x] Update root `cloudbuild.yaml` to build and deploy Cortex and Chat services on push.
