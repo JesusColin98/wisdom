@@ -10,8 +10,8 @@
 Goal: Deepen the graph traversal, visual intelligence, and cloud durability.
 
 ### 🧩 Persistence & Architecture
-- [ ] **Cross-Cloud Sync**: Sync local SQLite `wisdom.db` with Cloud Spanner or Firestore for production durability across Cloud Run instances.
-- [ ] **Cloud Run Terraform**: Automate the deployment of `wisdom-unified` and `wisdom-chat` via Terraform to eliminate manual configurations.
+- [x] **Cloud Run Terraform**: Automated the deployment of `wisdom-unified` and `wisdom-chat` via Terraform in the `terraform/` directory. Included GCS FUSE setup for stateful SQLite.
+- [ ] **Cross-Cloud Sync / Concurrency**: Evaluate SQLite concurrency locks over GCS FUSE. If scaling horizontally creates write contention, migrate Core Logic to Cloud Spanner or Firestore.
 
 ### 🧠 Agent Multimodality
 - [ ] **Live Audio UI**: Verify real-time audio/video feedback loop in the Portal connects properly to the decoupled `wisdom-chat` service.

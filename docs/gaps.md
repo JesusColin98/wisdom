@@ -4,29 +4,29 @@ During the deep architectural analysis of the project, several components were i
 
 ## 1. Underutilized/Detached Components
 
-### `chat_service/` (The Multimodal Python Agent)
+### `chat_service/` (The Multimodal Python Agent) -> **RESOLVED (DECOUPLED)**
 - **Current State:** Contains a Python-based WebSocket proxy connecting to the **Gemini 2.0 Live API** (`wss://generativelanguage.googleapis.com/...`). It handles real-time audio (PCM) and streaming text for the frontend.
-- **Why it's a Gap:** The root unified `Dockerfile` only builds the Go backend (`wisdom_engine`) and the React frontend. It completely ignores `chat_service/`. Consequently, if deployed using the unified Docker image, the voice/live capabilities in the UI will fail to connect.
-- **Action Required:** Decide whether to (A) port the Gemini 2.0 Live API proxy logic directly into the Go backend's `pkg/api/websocket.go` to maintain a single deployment artifact, or (B) update the `cloudbuild.yaml` and deployment architecture to deploy `chat_service` as a sidecar/separate Cloud Run service so the UI can use the Live Voice features.
-
-### `cerebellum_service/`
-- **Current State:** Contains a placeholder Python FastAPI server referencing Graph Mamba and GAT models for "Tier 2" graph reasoning.
-- **Why it's a Gap:** `pkg/cerebellum/` in Go has natively taken over the core tool orchestration and schemas. `cerebellum_service` is unused and unlinked.
-- **Action:** Safely delete the `cerebellum_service` directory unless Tier 2 Graph Mamba testing is actively happening in Python.
-
-### `wisdom_bridge.py`
-- **Current State:** A Python-based script designed to bridge Gemini CLI to the Wisdom Ecosystem over JSON-RPC (MCP).
-- **Why it's a Gap:** The documentation explicitly states: "Native Go MCP: Implemented native Go MCP server in pkg/mcp, removing local Python overhead." There is already a `wisdom-mcp` binary built from Go.
-- **Action:** Safely delete `wisdom_bridge.py`.
+- **Why it was a Gap:** The root unified `Dockerfile` only built the Go backend.
+- **Resolution:** Decoupled into its own independent Cloud Run build via `cloudbuild.yaml` as `wisdom-chat:latest`.
 
 ## 2. Unused Configuration Files
 
-### `docker-compose.yml`
-- **Current State:** Defines a multi-container setup with `wisdom-engine`, `wisdom-chat` (Python), and `wisdom-portal`.
-- **Why it's a Gap:** The project has pivoted to a unified Go binary serving the static UI. The `docker-compose.yml` reflects the older microservice architecture and might confuse developers regarding the production deployment strategy.
-- **Action:** Update `docker-compose.yml` to reflect the desired architecture (e.g., whether `chat_service` should remain separate or everything unified).
+### `docker-compose.yml` -> **RESOLVED**
+- **Current State:** Defined a multi-container setup with `wisdom-engine`, `wisdom-chat`, and `wisdom-portal`.
+- **Resolution:** Updated to accurately reflect the 2-container architecture (`wisdom-engine` + `wisdom-chat`), removing the redundant standalone `portal` service.
 
 ## 3. Modularizing Wisdom (Memory as a Service)
 - **Current State:** Wisdom tightly integrates graph processing with chat in its UI. 
 - **The Gap:** To offer Wisdom as a pure "Memory-as-a-Service", the Go MCP Server (`wisdom-mcp`) should be the primary product surface for external LLMs. The frontend (`portal`) should serve as an agnostic visualizer of the `wisdom.db`.
 - **Action:** Expose the MCP logic robustly so external tools (learning English, math, etc.) can hook into Wisdom's storage layer dynamically, and ensure the UI can visualize any arbitrary namespace.
+
+---
+## ✅ Resolved / Deleted Gaps
+
+### `cerebellum_service/` -> **DELETED**
+- **Issue:** Redundant Python microservice referencing Graph Mamba and GAT models, superseded by `pkg/cerebellum/` in Go.
+- **Resolution:** Directory fully removed from the repository.
+
+### `wisdom_bridge.py` -> **MOVED TO SCRIPTS**
+- **Issue:** Obsolete Python script bridging Gemini CLI.
+- **Resolution:** Moved to `scripts/tools/` for archiving, removing it from the execution path.

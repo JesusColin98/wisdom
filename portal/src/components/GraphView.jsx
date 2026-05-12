@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { Network, Search, Info, Layers, Edit3, Flame, Snowflake, Star } from 'lucide-react';
+import { Network, Search, Info, Layers, Edit3, Flame, Snowflake, Star, List, ChevronRight } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
 const CLASS_COLORS = {
@@ -17,6 +17,9 @@ const GraphView = ({ namespace, onEditNode }) => {
   const [data, setData] = useState({ nodes: [], links: [] });
   const [internalLoading, setInternalLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [showExplorer, setShowExplorer] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [lineageHighlight, setLineageHighlight] = useState(new Set());
   const graphRef = useRef();
 
   const fetchGraphData = useCallback(async () => {
@@ -79,12 +82,13 @@ const GraphView = ({ namespace, onEditNode }) => {
 
   useEffect(() => {
     if (lastEvent && (lastEvent.type === 'REM_CONSOLIDATED' || lastEvent.type === 'MAPPED')) {
-        fetchGraphData(); // eslint-disable-line react-hooks/set-state-in-effect
+        fetchGraphData();
     }
   }, [lastEvent, fetchGraphData]);
 
   const handleNodeClick = node => {
     setSelectedNode(node);
+    setLineageHighlight(new Set()); // Clear highlight on new selection
     if (graphRef.current) {
         graphRef.current.centerAt(node.x, node.y, 1000);
         graphRef.current.zoom(3, 1000);
@@ -98,7 +102,15 @@ const GraphView = ({ namespace, onEditNode }) => {
         const res = await fetch(`${API_BASE}/cortex/lineage?id=${selectedNode.id}&direction=${direction}`);
         if (res.ok) {
             const lineageNodes = await res.json();
-            window.alert(`Found ${lineageNodes.length} nodes in lineage ${direction}`);
+            const highlightSet = new Set(lineageNodes.map(n => n.id));
+            highlightSet.add(selectedNode.id);
+            setLineageHighlight(highlightSet);
+            
+            // Focus on lineage
+            if (lineageNodes.length > 0 && graphRef.current) {
+                // If there are many, we zoom out to see them
+                graphRef.current.zoom(1.5, 1000);
+            }
         }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
@@ -114,7 +126,6 @@ const GraphView = ({ namespace, onEditNode }) => {
           </div>
         </div>
       )}
-
 
       <ForceGraph2D
         ref={graphRef}
@@ -132,21 +143,23 @@ const GraphView = ({ namespace, onEditNode }) => {
           const textWidth = ctx.measureText(label).width;
           const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.4); 
 
-          // Dopamine Glow for high impact
-          if (node.isHighImpact) {
-            ctx.shadowColor = node.color;
-            ctx.shadowBlur = 15 / globalScale;
+          const isHighlighted = lineageHighlight.has(node.id);
+
+          // Dopamine Glow for high impact or highlight
+          if (node.isHighImpact || isHighlighted) {
+            ctx.shadowColor = isHighlighted ? '#6366f1' : node.color;
+            ctx.shadowBlur = (isHighlighted ? 25 : 15) / globalScale;
           } else {
             ctx.shadowBlur = 0;
           }
 
-          ctx.fillStyle = 'rgba(13, 17, 23, 0.9)';
+          ctx.fillStyle = isHighlighted ? 'rgba(99, 102, 241, 0.2)' : 'rgba(13, 17, 23, 0.9)';
           ctx.beginPath();
           ctx.roundRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, bckgDimensions[0], bckgDimensions[1], 4/globalScale);
           ctx.fill();
           
-          ctx.strokeStyle = node.color;
-          ctx.lineWidth = (node.stratum === 'HOT' ? 2 : 1) / globalScale;
+          ctx.strokeStyle = isHighlighted ? '#6366f1' : node.color;
+          ctx.lineWidth = (isHighlighted ? 3 : (node.stratum === 'HOT' ? 2 : 1)) / globalScale;
           ctx.stroke();
 
           // Reset shadow for text
@@ -154,7 +167,7 @@ const GraphView = ({ namespace, onEditNode }) => {
 
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#e2e8f0';
+          ctx.fillStyle = isHighlighted ? '#fff' : '#e2e8f0';
           ctx.fillText(label, node.x, node.y);
 
           node.__bckgDimensions = bckgDimensions;
