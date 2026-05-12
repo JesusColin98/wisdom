@@ -91,7 +91,6 @@ func TestServer_Recall(t *testing.T) {
 		AddRow("target-node-2", "Fact", []byte(`{"data":"neighbor"}`), 1.0, false, nil, now, now)
 
 	mock.ExpectQuery(regexp.QuoteMeta("SELECT id, type, payload, confidence, requires_human, ttl, created_at, updated_at FROM nodes WHERE id = ANY($1)")).
-		WithArgs(sqlmock.AnyArg()).
 		WillReturnRows(rowsNeighbors)
 
 	req := &pb.RecallRequest{
