@@ -19,12 +19,14 @@ import MetabolismView from './components/MetabolismView';
 import ChatView from './components/ChatView';
 import NoteEditor from './components/NoteEditor';
 import ReviewView from './components/ReviewView';
+import LearningView from './components/LearningView';
 
 function AppContent() {
   const { 
     view, setView, 
     rigor, setRigor, 
     activeNamespace, setActiveNamespace, 
+    namespaces,
     user, 
     loading, setLoading,
     error, API_BASE

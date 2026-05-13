@@ -82,6 +82,7 @@ const GraphView = ({ namespace, onEditNode }) => {
 
   useEffect(() => {
     if (lastEvent && (lastEvent.type === 'REM_CONSOLIDATED' || lastEvent.type === 'MAPPED')) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchGraphData();
     }
   }, [lastEvent, fetchGraphData]);

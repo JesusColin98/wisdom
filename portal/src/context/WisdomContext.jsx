@@ -92,7 +92,7 @@ export const WisdomProvider = ({ children }) => {
       view, setView,
       rigor, setRigor,
       activeNamespace, setActiveNamespace,
-      namespaces,
+      namespaces, setNamespaces,
       user, setUser,
       loading, setLoading,
       error, setError,
