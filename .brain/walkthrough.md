@@ -36,6 +36,7 @@ The Wisdom Cognitive Runtime has been successfully refactored into a high-perfor
 
 ## [2026-05-12] Gap Clearance & Optimization
 *   **Graph Retrieval:** Optimized `Recall` by implementing a batched `GetNodes` method. Now, a `Recall` request returns not just the edges but also the full `Node` objects for all direct neighbors in the graph. Fixed a slice-to-SQL conversion issue by integrating `github.com/lib/pq` for the `ANY($1)` clause.
+*   **Protoc Path Fix:** Replaced `paths=source_relative` with `module=github.com/google/wisdom` in `cloudbuild.yaml` and Dockerfiles. This ensures the generated `.pb.go` files are placed correctly in `pkg/cortex/v1` instead of getting stranded in `proto/`, allowing the Docker build to successfully import them.
 *   **DevOps:** Created `scripts/setup_dev_env.ps1` and `scripts/setup_dev_env.sh` to automate the local installation of `protoc` and the necessary Go plugins.
 *   **Infrastructure Hardening:** 
     *   Configured a placeholder for the Terraform GCS remote backend in `main.tf`.
