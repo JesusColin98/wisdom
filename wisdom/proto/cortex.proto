@@ -11,6 +11,26 @@ service Cortex {
   rpc Memorize(IngestRequest) returns (NodeID);
   rpc Recall(RecallRequest) returns (CognitionResponse);
   rpc QueryFacts(FactRequest) returns (FactList);
+  rpc SemanticSearch(SemanticSearchRequest) returns (SemanticSearchResponse);
+}
+
+message SemanticSearchRequest {
+  string query = 1;
+  int32 limit = 2;
+  string domain_filter = 3;
+  string type_filter = 4;
+  double min_score = 5;
+}
+
+message SearchResult {
+  Node node = 1;
+  float score = 2;
+  string mode = 3;
+}
+
+message SemanticSearchResponse {
+  repeated SearchResult results = 1;
+  string mode = 2;
 }
 
 message IngestRequest {
