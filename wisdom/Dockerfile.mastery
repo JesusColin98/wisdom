@@ -1,0 +1,11 @@
+﻿FROM golang:1.24-bookworm AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o /mastery-server ./cmd/mastery/main.go
+
+FROM gcr.io/distroless/static-debian12
+COPY --from=builder /mastery-server /mastery-server
+EXPOSE 50053
+ENTRYPOINT ["/mastery-server"]
