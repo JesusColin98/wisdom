@@ -20,11 +20,15 @@ func (UnimplementedCortexServer) Recall(context.Context, *RecallRequest) (*Cogni
 func (UnimplementedCortexServer) QueryFacts(context.Context, *FactRequest) (*FactList, error) {
 	return nil, nil
 }
+func (UnimplementedCortexServer) SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error) {
+	return nil, nil
+}
 
 type CortexServer interface {
 	Memorize(context.Context, *IngestRequest) (*NodeID, error)
 	Recall(context.Context, *RecallRequest) (*CognitionResponse, error)
 	QueryFacts(context.Context, *FactRequest) (*FactList, error)
+	SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error)
 }
 
 func RegisterCortexServer(s grpc.ServiceRegistrar, srv CortexServer) {}
@@ -81,11 +85,34 @@ type FactList struct {
 	Facts []*Node
 }
 
+// SemanticSearchRequest is the input for hybrid vector+full-text search.
+type SemanticSearchRequest struct {
+	Query        string
+	Limit        int32
+	DomainFilter string
+	TypeFilter   string
+	MinScore     float64
+}
+
+// SearchResult wraps a Node with its similarity score and search mode.
+type SearchResult struct {
+	Node  *Node
+	Score float32
+	Mode  string // "vector", "fulltext", "hybrid", "jsonb_fallback"
+}
+
+// SemanticSearchResponse is the output of a semantic search.
+type SemanticSearchResponse struct {
+	Results []*SearchResult
+	Mode    string
+}
+
 // Client stubs
 type CortexClient interface {
 	Memorize(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*NodeID, error)
 	Recall(ctx context.Context, in *RecallRequest, opts ...grpc.CallOption) (*CognitionResponse, error)
 	QueryFacts(ctx context.Context, in *FactRequest, opts ...grpc.CallOption) (*FactList, error)
+	SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error)
 }
 
 type cortexClient struct {
@@ -105,5 +132,9 @@ func (c *cortexClient) Recall(ctx context.Context, in *RecallRequest, opts ...gr
 }
 
 func (c *cortexClient) QueryFacts(ctx context.Context, in *FactRequest, opts ...grpc.CallOption) (*FactList, error) {
+	return nil, nil
+}
+
+func (c *cortexClient) SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error) {
 	return nil, nil
 }

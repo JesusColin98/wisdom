@@ -19,6 +19,7 @@ import (
 	"os"
 	"time"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
@@ -184,18 +185,10 @@ func TextFromNode(node *Node) string {
 
 type oauth2Transport struct {
 	base http.RoundTripper
-	ts   interface {
-		Token() (*oauth2Token, error)
-	}
-}
-
-// We import oauth2 token type inline to avoid full dependency.
-type oauth2Token struct {
-	AccessToken string
+	ts   oauth2.TokenSource
 }
 
 func (t *oauth2Transport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Clone to avoid mutating caller's request.
 	r := req.Clone(req.Context())
 	if tok, err := t.ts.Token(); err == nil {
 		r.Header.Set("Authorization", "Bearer "+tok.AccessToken)
