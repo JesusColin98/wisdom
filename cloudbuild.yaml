@@ -238,13 +238,19 @@ steps:
             --platform=managed \
             --no-traffic \
             --tag=canary \
-            --no-allow-unauthenticated
+            --no-allow-unauthenticated \
+            --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION}" \
+            --set-secrets "DB_CONN_STRING=CORTEX_DB_CONN:latest" \
+            --use-http2
         else
           gcloud run deploy wisdom-cortex \
             --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA \
             --region=${_REGION} \
             --platform=managed \
-            --no-allow-unauthenticated
+            --no-allow-unauthenticated \
+            --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION}" \
+            --set-secrets "DB_CONN_STRING=CORTEX_DB_CONN:latest" \
+            --use-http2
         fi
     waitFor:
       - push-cortex
@@ -265,75 +271,95 @@ steps:
   # Deploy all Go services in parallel (after Cortex is live).
   - id: deploy-mastery
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-mastery
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-mastery \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,CORTEX_GRPC_URL=$$CORTEX_URL" \
+          --use-http2
     waitFor:
       - push-mastery
       - promote-cortex
 
   - id: deploy-researcher
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-researcher
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-researcher \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,GCS_INGESTION_BUCKET=$PROJECT_ID-wisdom-ingestion,CORTEX_GRPC_URL=$$CORTEX_URL" \
+          --use-http2
     waitFor:
       - push-researcher
       - promote-cortex
 
   - id: deploy-curriculum
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-curriculum
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        MASTERY_URL=$(gcloud run services describe wisdom-mastery --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-curriculum \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,CORTEX_GRPC_URL=$$CORTEX_URL,MASTERY_GRPC_URL=$$MASTERY_URL" \
+          --use-http2
     waitFor:
       - push-curriculum
       - promote-cortex
+      - deploy-mastery
 
   - id: deploy-integrations
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-integrations
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        MASTERY_URL=$(gcloud run services describe wisdom-mastery --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-integrations \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,CORTEX_GRPC_URL=$$CORTEX_URL,MASTERY_GRPC_URL=$$MASTERY_URL,OBSIDIAN_MCP_URL=disabled,ANKI_MCP_URL=disabled" \
+          --set-secrets "OBSIDIAN_API_KEY=OBSIDIAN_API_KEY:latest,DEFAULT_USER_ID=DEFAULT_USER_ID:latest" \
+          --use-http2
     waitFor:
       - push-integrations
       - promote-cortex
+      - deploy-mastery
 
   - id: deploy-entity
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-entity
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-entity \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "CORTEX_GRPC_URL=$$CORTEX_URL" \
+          --use-http2
     waitFor:
       - push-entity
       - promote-cortex
