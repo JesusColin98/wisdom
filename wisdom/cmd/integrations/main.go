@@ -58,8 +58,15 @@ func main() {
 		log.Fatal("FATAL: GCP_PROJECT_ID environment variable is required")
 	}
 
-	// Anki polling cadence (default: 15 minutes per spec).
-	ankiPollIntervalSec := 15 * 60
+	// Default user for the Anki polling and retry loops.
+	defaultUserID := os.Getenv("DEFAULT_USER_ID")
+	if defaultUserID == "" {
+		defaultUserID = "default"
+		log.Println("WARNING: DEFAULT_USER_ID not set, defaulting to 'default'")
+	}
+
+	// Anki polling cadence — 15 minutes per spec (CONTRACTS.md).
+	const ankiPollIntervalSec = 15 * 60
 
 	// Connect to Cortex.
 	cortexConn, err := grpc.Dial(cortexURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -86,13 +93,15 @@ func main() {
 		AnkiMCPURL:          ankiMCPURL,
 		GCPProject:          gcpProject,
 		AnkiPollIntervalSec: ankiPollIntervalSec,
+		DefaultUserID:       defaultUserID,
 	})
 	if err != nil {
 		log.Fatalf("Failed to initialize Integrations server: %v", err)
 	}
 
-	// Start the background Anki polling loop.
+	// Start background loops.
 	go intServer.StartAnkiPoller()
+	go intServer.StartRetryLoop(defaultUserID)
 
 	// Spin up gRPC server.
 	grpcServer := grpc.NewServer()

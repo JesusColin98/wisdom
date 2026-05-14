@@ -1,0 +1,54 @@
+{
+  "domains": [
+    {
+      "id": "CHESS",
+      "agent": "ChessExpert",
+      "description": "Chess openings, tactics, endgames, repertoire, game analysis, and Lichess data.",
+      "keywords": ["chess", "opening", "tactic", "endgame", "lichess", "position", "pawn", "king", "queen", "rook", "bishop", "knight", "fork", "pin", "skewer", "checkmate", "repertoire", "gambit", "sicilian", "caro-kann"],
+      "memory_scope": "Chess_Expert",
+      "anki_deck_prefix": "Wisdom::Chess",
+      "obsidian_folder": "Chess/",
+      "memory_topics": ["CHESS_WEAKNESSES", "CHESS_OPENINGS", "CHESS_TACTICS"]
+    },
+    {
+      "id": "FINANCE",
+      "agent": "FinanceExpert",
+      "description": "Financial markets, stocks, ETFs, crypto, Fibras (MX REITs), macroeconomics, portfolio management.",
+      "keywords": ["stock", "etf", "crypto", "bitcoin", "finance", "market", "fibra", "reit", "dividend", "yield", "portfolio", "bond", "economy", "inflation", "rate", "valuation", "dcf", "earnings"],
+      "memory_scope": "Finance_Expert",
+      "anki_deck_prefix": "Wisdom::Finance",
+      "obsidian_folder": "Finance/",
+      "memory_topics": ["FINANCIAL_GOALS", "PORTFOLIO_POSITIONS", "MARKET_THESIS"]
+    },
+    {
+      "id": "LANGUAGE",
+      "agent": "LanguageExpert",
+      "description": "Language learning, grammar rules, vocabulary, speaking practice, pronunciation, and cultural context.",
+      "keywords": ["language", "grammar", "vocabulary", "word", "phrase", "conjugation", "pronunciation", "translation", "spanish", "english", "french", "german", "japanese", "chinese", "verb", "noun", "tense"],
+      "memory_scope": "Language_Expert",
+      "anki_deck_prefix": "Wisdom::Language",
+      "obsidian_folder": "Language/",
+      "memory_topics": ["LANGUAGE_GOALS", "VOCABULARY_GAPS", "GRAMMAR_WEAKNESSES"]
+    },
+    {
+      "id": "TECH",
+      "agent": "TechExpert",
+      "description": "Software engineering, system design, algorithms, Go, Python, TypeScript, cloud architecture, databases.",
+      "keywords": ["code", "programming", "software", "algorithm", "database", "api", "docker", "kubernetes", "cloud", "go", "golang", "python", "typescript", "react", "grpc", "microservices", "architecture", "design pattern"],
+      "memory_scope": "Tech_Expert",
+      "anki_deck_prefix": "Wisdom::Tech",
+      "obsidian_folder": "Tech/",
+      "memory_topics": ["TECH_STACK", "CODE_PATTERNS", "SYSTEM_DESIGN_DECISIONS"]
+    },
+    {
+      "id": "GENERAL",
+      "agent": "GeneralExpert",
+      "description": "General knowledge, concepts that don't fit a specific domain, interdisciplinary topics.",
+      "keywords": [],
+      "memory_scope": "General_Expert",
+      "anki_deck_prefix": "Wisdom::General",
+      "obsidian_folder": "General/",
+      "memory_topics": ["GENERAL_INSIGHTS", "INTERDISCIPLINARY_CONNECTIONS"]
+    }
+  ]
+}
