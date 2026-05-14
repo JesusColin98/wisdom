@@ -1,11 +1,12 @@
-// Package stt implements the Google Cloud STT V2 middleware for Wisdom-Thalamus.
+// Package thalamus implements the Wisdom-Thalamus gateway service.
+// This file adds the Google Cloud STT V2 middleware for voice transcription.
 // It receives audio bytes from the client, transcribes them via Cloud STT V2,
 // and publishes the transcription as a wisdom.voice.transcribed Pub/Sub event
 // for the ADK Router to consume.
 //
 // Architecture:
 //   Client → Thalamus HTTP /transcribe → Cloud STT V2 → Pub/Sub → ADK Router
-package stt
+package thalamus
 
 import (
 	"bytes"
@@ -120,9 +121,8 @@ func (s *STTMiddleware) Transcribe(ctx context.Context, req *TranscribeRequest) 
 			DecodingConfig: &speechpb.RecognitionConfig_AutoDecodingConfig{
 				AutoDecodingConfig: &speechpb.AutoDetectDecodingConfig{},
 			},
-			LanguageCodes:      []string{req.LanguageCode},
-			Model:              "long",        // "long" for dictation, "latest_short" for commands.
-			EnableWordTimeOffsets: false,
+			LanguageCodes: []string{req.LanguageCode},
+			Model:         "long", // "long" for dictation, "latest_short" for commands.
 			Features: &speechpb.RecognitionFeatures{
 				EnableAutomaticPunctuation: true,
 				ProfanityFilter:            false,
