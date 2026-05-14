@@ -13,6 +13,7 @@ variable "gemini_api_key" {
   description = "Google Gemini API key for ADK Router and expert agents."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "obsidian_api_key" {

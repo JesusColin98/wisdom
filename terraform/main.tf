@@ -31,7 +31,7 @@ terraform {
   }
 
   backend "gcs" {
-    bucket = "REPLACE_WITH_YOUR_PROJECT_ID-tf-state"
+    bucket = "jesuscolin2025-678c7-tf-state"
     prefix = "wisdom/terraform/state"
   }
 }
@@ -120,7 +120,7 @@ resource "google_sql_database_instance" "cortex_pg" {
     }
   }
 
-  deletion_protection = true
+  deletion_protection = false # Set to false to allow easy destruction for dev
 }
 
 resource "google_sql_database" "cortex_db" {
@@ -141,21 +141,28 @@ resource "google_sql_user" "cortex_db_user" {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4. Secret Manager — All secrets
+# 4. Secret Manager
 # ─────────────────────────────────────────────────────────────────────────────
+# Data blocks for existing secrets
+data "google_secret_manager_secret" "gemini_api_key" {
+  secret_id = "GEMINI_API_KEY"
+}
+
+data "google_secret_manager_secret" "obsidian_api_key" {
+  secret_id = "OBSIDIAN_API_KEY"
+}
+
+# Create only new secrets
 locals {
-  secrets = {
+  new_secrets = {
     "CORTEX_DB_CONN"      = "postgres://cortexuser:${random_password.cortex_db_password.result}@127.0.0.1:5432/cortexdb?sslmode=require"
-    "GEMINI_API_KEY"      = var.gemini_api_key
-    "OBSIDIAN_API_KEY"    = var.obsidian_api_key
     "DEFAULT_USER_ID"     = var.default_user_id
-    "GCP_PROJECT_ID"      = var.project_id
     "MEMORY_BANK_CORPUS"  = var.memory_bank_corpus
   }
 }
 
 resource "google_secret_manager_secret" "wisdom_secrets" {
-  for_each  = local.secrets
+  for_each  = local.new_secrets
   secret_id = each.key
   replication {
     auto {}
@@ -163,7 +170,7 @@ resource "google_secret_manager_secret" "wisdom_secrets" {
 }
 
 resource "google_secret_manager_secret_version" "wisdom_secret_versions" {
-  for_each    = local.secrets
+  for_each    = local.new_secrets
   secret      = google_secret_manager_secret.wisdom_secrets[each.key].id
   secret_data = each.value
 }
