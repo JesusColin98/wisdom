@@ -19,5 +19,7 @@ WORKDIR /
 
 COPY --from=builder /app/researcher-job /researcher-job
 
-# The Researcher is a Job, not a server, so no EXPOSE is needed.
+# The Researcher is a gRPC service listening on port 50054 (default).
+EXPOSE 50054
+
 ENTRYPOINT ["/researcher-job"]

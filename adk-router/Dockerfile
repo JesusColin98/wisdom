@@ -20,5 +20,5 @@ COPY . .
 # Cloud Run uses the PORT env variable.
 ENV PORT=8081
 
-# Use exec form for proper signal handling.
-ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081", "--workers", "1"]
+# Use sh to allow environment variable expansion in ENTRYPOINT.
+ENTRYPOINT ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8081} --workers 1"]

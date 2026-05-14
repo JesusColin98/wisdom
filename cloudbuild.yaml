@@ -367,15 +367,24 @@ steps:
   # ADK Router after Mastery + Integrations are ready.
   - id: deploy-adk-router
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-adk-router
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        MASTERY_URL=$(gcloud run services describe wisdom-mastery --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        RESEARCHER_URL=$(gcloud run services describe wisdom-researcher --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        CURRICULUM_URL=$(gcloud run services describe wisdom-curriculum --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        INTEGRATIONS_URL=$(gcloud run services describe wisdom-integrations --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        ENTITY_URL=$(gcloud run services describe wisdom-entity --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        
+        gcloud run deploy wisdom-adk-router \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,GCP_REGION=${_REGION},CORTEX_GRPC_URL=$$CORTEX_URL,MASTERY_GRPC_URL=$$MASTERY_URL,RESEARCHER_GRPC_URL=$$RESEARCHER_URL,CURRICULUM_GRPC_URL=$$CURRICULUM_URL,INTEGRATIONS_GRPC_URL=$$INTEGRATIONS_URL,ENTITY_GRPC_URL=$$ENTITY_URL" \
+          --set-secrets "MEMORY_BANK_CORPUS=MEMORY_BANK_CORPUS:latest,DEFAULT_USER_ID=DEFAULT_USER_ID:latest"
     waitFor:
       - push-adk-router
       - deploy-mastery
@@ -384,15 +393,18 @@ steps:
   # Thalamus last — public gateway, only live when backend is ready.
   - id: deploy-thalamus
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-thalamus
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --allow-unauthenticated
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex --region ${_REGION} --format 'value(status.url)' | sed 's/https:\/\///')
+        gcloud run deploy wisdom-thalamus \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --set-env-vars "GCP_PROJECT_ID=$PROJECT_ID,CORTEX_GRPC_URL=$$CORTEX_URL" \
+          --use-http2
     waitFor:
       - push-thalamus
       - deploy-adk-router
