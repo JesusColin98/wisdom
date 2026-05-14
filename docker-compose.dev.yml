@@ -148,5 +148,42 @@ services:
     depends_on:
       - cortex
 
+  # ─────────────────────────────────────────────
+  # Layer 1: Cognitive Router (Python ADK)
+  # ─────────────────────────────────────────────
+
+  adk-router:
+    build:
+      context: ./adk-router
+      dockerfile: Dockerfile
+    container_name: wisdom-adk-router
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+      GCP_REGION: "${GCP_REGION:-us-central1}"
+      CORTEX_GRPC_URL: "cortex:50051"
+      MASTERY_GRPC_URL: "mastery:50053"
+      RESEARCHER_GRPC_URL: "researcher:50054"
+      CURRICULUM_GRPC_URL: "curriculum:50055"
+      INTEGRATIONS_GRPC_URL: "integrations:50056"
+      ENTITY_GRPC_URL: "entity:50057"
+      PUBSUB_INPUT_SUBSCRIPTION: "${PUBSUB_INPUT_SUBSCRIPTION:-adk-router-voice-input}"
+      PUBSUB_ROUTING_LOG_TOPIC: "${PUBSUB_ROUTING_LOG_TOPIC:-wisdom.router.decision_logged}"
+      ROUTER_MODEL: "gemini-2.0-flash"
+      EXPERT_MODEL: "gemini-2.5-pro"
+      MEMORY_BANK_CORPUS: "${MEMORY_BANK_CORPUS:-wisdom-memory-bank}"
+      DEFAULT_USER_ID: "${DEFAULT_USER_ID:-default}"
+      # GOOGLE_APPLICATION_CREDENTIALS for Vertex AI.
+      GOOGLE_APPLICATION_CREDENTIALS: "/secrets/gcp-sa-key.json"
+    volumes:
+      - "${GCP_SA_KEY_PATH:-~/.config/gcloud/application_default_credentials.json}:/secrets/gcp-sa-key.json:ro"
+    depends_on:
+      - cortex
+      - mastery
+      - integrations
+
+
 volumes:
   postgres_data:
