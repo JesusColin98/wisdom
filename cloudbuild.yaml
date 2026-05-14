@@ -227,16 +227,25 @@ steps:
   # Cortex first — all other services depend on it.
   - id: deploy-cortex
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - wisdom-cortex
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --no-traffic
-      - --tag=canary
+      - -c
+      - |
+        if gcloud run services describe wisdom-cortex --region ${_REGION} --platform managed > /dev/null 2>&1; then
+          gcloud run deploy wisdom-cortex \
+            --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA \
+            --region=${_REGION} \
+            --platform=managed \
+            --no-traffic \
+            --tag=canary \
+            --no-allow-unauthenticated
+        else
+          gcloud run deploy wisdom-cortex \
+            --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA \
+            --region=${_REGION} \
+            --platform=managed \
+            --no-allow-unauthenticated
+        fi
     waitFor:
       - push-cortex
 
@@ -264,6 +273,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-mastery
       - promote-cortex
@@ -278,6 +288,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-researcher
       - promote-cortex
@@ -292,6 +303,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-curriculum
       - promote-cortex
@@ -306,6 +318,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-integrations
       - promote-cortex
@@ -320,6 +333,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-entity
       - promote-cortex
@@ -335,6 +349,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --no-allow-unauthenticated
     waitFor:
       - push-adk-router
       - deploy-mastery
@@ -351,6 +366,7 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
+      - --allow-unauthenticated
     waitFor:
       - push-thalamus
       - deploy-adk-router
