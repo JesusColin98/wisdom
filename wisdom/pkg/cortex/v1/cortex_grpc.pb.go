@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Cortex_Memorize_FullMethodName   = "/wisdom.cortex.v1.Cortex/Memorize"
-	Cortex_Recall_FullMethodName     = "/wisdom.cortex.v1.Cortex/Recall"
-	Cortex_QueryFacts_FullMethodName = "/wisdom.cortex.v1.Cortex/QueryFacts"
+	Cortex_Memorize_FullMethodName       = "/wisdom.cortex.v1.Cortex/Memorize"
+	Cortex_Recall_FullMethodName         = "/wisdom.cortex.v1.Cortex/Recall"
+	Cortex_QueryFacts_FullMethodName     = "/wisdom.cortex.v1.Cortex/QueryFacts"
+	Cortex_SemanticSearch_FullMethodName = "/wisdom.cortex.v1.Cortex/SemanticSearch"
 )
 
 // CortexClient is the client API for Cortex service.
@@ -31,6 +32,7 @@ type CortexClient interface {
 	Memorize(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*NodeID, error)
 	Recall(ctx context.Context, in *RecallRequest, opts ...grpc.CallOption) (*CognitionResponse, error)
 	QueryFacts(ctx context.Context, in *FactRequest, opts ...grpc.CallOption) (*FactList, error)
+	SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error)
 }
 
 type cortexClient struct {
@@ -71,6 +73,16 @@ func (c *cortexClient) QueryFacts(ctx context.Context, in *FactRequest, opts ...
 	return out, nil
 }
 
+func (c *cortexClient) SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SemanticSearchResponse)
+	err := c.cc.Invoke(ctx, Cortex_SemanticSearch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CortexServer is the server API for Cortex service.
 // All implementations must embed UnimplementedCortexServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type CortexServer interface {
 	Memorize(context.Context, *IngestRequest) (*NodeID, error)
 	Recall(context.Context, *RecallRequest) (*CognitionResponse, error)
 	QueryFacts(context.Context, *FactRequest) (*FactList, error)
+	SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error)
 	mustEmbedUnimplementedCortexServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedCortexServer) Recall(context.Context, *RecallRequest) (*Cogni
 }
 func (UnimplementedCortexServer) QueryFacts(context.Context, *FactRequest) (*FactList, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryFacts not implemented")
+}
+func (UnimplementedCortexServer) SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SemanticSearch not implemented")
 }
 func (UnimplementedCortexServer) mustEmbedUnimplementedCortexServer() {}
 func (UnimplementedCortexServer) testEmbeddedByValue()                {}
@@ -172,6 +188,24 @@ func _Cortex_QueryFacts_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Cortex_SemanticSearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SemanticSearchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CortexServer).SemanticSearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Cortex_SemanticSearch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CortexServer).SemanticSearch(ctx, req.(*SemanticSearchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Cortex_ServiceDesc is the grpc.ServiceDesc for Cortex service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Cortex_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryFacts",
 			Handler:    _Cortex_QueryFacts_Handler,
+		},
+		{
+			MethodName: "SemanticSearch",
+			Handler:    _Cortex_SemanticSearch_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

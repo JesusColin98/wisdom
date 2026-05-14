@@ -23,6 +23,194 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SemanticSearchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	DomainFilter  string                 `protobuf:"bytes,3,opt,name=domain_filter,json=domainFilter,proto3" json:"domain_filter,omitempty"`
+	TypeFilter    string                 `protobuf:"bytes,4,opt,name=type_filter,json=typeFilter,proto3" json:"type_filter,omitempty"`
+	MinScore      float64                `protobuf:"fixed64,5,opt,name=min_score,json=minScore,proto3" json:"min_score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SemanticSearchRequest) Reset() {
+	*x = SemanticSearchRequest{}
+	mi := &file_proto_cortex_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SemanticSearchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SemanticSearchRequest) ProtoMessage() {}
+
+func (x *SemanticSearchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_cortex_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SemanticSearchRequest.ProtoReflect.Descriptor instead.
+func (*SemanticSearchRequest) Descriptor() ([]byte, []int) {
+	return file_proto_cortex_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SemanticSearchRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SemanticSearchRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *SemanticSearchRequest) GetDomainFilter() string {
+	if x != nil {
+		return x.DomainFilter
+	}
+	return ""
+}
+
+func (x *SemanticSearchRequest) GetTypeFilter() string {
+	if x != nil {
+		return x.TypeFilter
+	}
+	return ""
+}
+
+func (x *SemanticSearchRequest) GetMinScore() float64 {
+	if x != nil {
+		return x.MinScore
+	}
+	return 0
+}
+
+type SearchResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Node          *Node                  `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	Score         float32                `protobuf:"fixed32,2,opt,name=score,proto3" json:"score,omitempty"`
+	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchResult) Reset() {
+	*x = SearchResult{}
+	mi := &file_proto_cortex_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchResult) ProtoMessage() {}
+
+func (x *SearchResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_cortex_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchResult.ProtoReflect.Descriptor instead.
+func (*SearchResult) Descriptor() ([]byte, []int) {
+	return file_proto_cortex_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SearchResult) GetNode() *Node {
+	if x != nil {
+		return x.Node
+	}
+	return nil
+}
+
+func (x *SearchResult) GetScore() float32 {
+	if x != nil {
+		return x.Score
+	}
+	return 0
+}
+
+func (x *SearchResult) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+type SemanticSearchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*SearchResult        `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Mode          string                 `protobuf:"bytes,2,opt,name=mode,proto3" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SemanticSearchResponse) Reset() {
+	*x = SemanticSearchResponse{}
+	mi := &file_proto_cortex_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SemanticSearchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SemanticSearchResponse) ProtoMessage() {}
+
+func (x *SemanticSearchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_cortex_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SemanticSearchResponse.ProtoReflect.Descriptor instead.
+func (*SemanticSearchResponse) Descriptor() ([]byte, []int) {
+	return file_proto_cortex_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SemanticSearchResponse) GetResults() []*SearchResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *SemanticSearchResponse) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
 type IngestRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`     // Optional, if empty server generates one
@@ -37,7 +225,7 @@ type IngestRequest struct {
 
 func (x *IngestRequest) Reset() {
 	*x = IngestRequest{}
-	mi := &file_proto_cortex_proto_msgTypes[0]
+	mi := &file_proto_cortex_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +237,7 @@ func (x *IngestRequest) String() string {
 func (*IngestRequest) ProtoMessage() {}
 
 func (x *IngestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[0]
+	mi := &file_proto_cortex_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +250,7 @@ func (x *IngestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestRequest.ProtoReflect.Descriptor instead.
 func (*IngestRequest) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{0}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *IngestRequest) GetId() string {
@@ -116,7 +304,7 @@ type NodeID struct {
 
 func (x *NodeID) Reset() {
 	*x = NodeID{}
-	mi := &file_proto_cortex_proto_msgTypes[1]
+	mi := &file_proto_cortex_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -128,7 +316,7 @@ func (x *NodeID) String() string {
 func (*NodeID) ProtoMessage() {}
 
 func (x *NodeID) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[1]
+	mi := &file_proto_cortex_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -141,7 +329,7 @@ func (x *NodeID) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeID.ProtoReflect.Descriptor instead.
 func (*NodeID) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{1}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *NodeID) GetId() string {
@@ -161,7 +349,7 @@ type RecallRequest struct {
 
 func (x *RecallRequest) Reset() {
 	*x = RecallRequest{}
-	mi := &file_proto_cortex_proto_msgTypes[2]
+	mi := &file_proto_cortex_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -173,7 +361,7 @@ func (x *RecallRequest) String() string {
 func (*RecallRequest) ProtoMessage() {}
 
 func (x *RecallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[2]
+	mi := &file_proto_cortex_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -186,7 +374,7 @@ func (x *RecallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecallRequest.ProtoReflect.Descriptor instead.
 func (*RecallRequest) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{2}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RecallRequest) GetId() string {
@@ -219,7 +407,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_proto_cortex_proto_msgTypes[3]
+	mi := &file_proto_cortex_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +419,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[3]
+	mi := &file_proto_cortex_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +432,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{3}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Node) GetId() string {
@@ -315,7 +503,7 @@ type Edge struct {
 
 func (x *Edge) Reset() {
 	*x = Edge{}
-	mi := &file_proto_cortex_proto_msgTypes[4]
+	mi := &file_proto_cortex_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -327,7 +515,7 @@ func (x *Edge) String() string {
 func (*Edge) ProtoMessage() {}
 
 func (x *Edge) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[4]
+	mi := &file_proto_cortex_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -340,7 +528,7 @@ func (x *Edge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Edge.ProtoReflect.Descriptor instead.
 func (*Edge) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{4}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Edge) GetSourceId() string {
@@ -383,7 +571,7 @@ type CognitionResponse struct {
 
 func (x *CognitionResponse) Reset() {
 	*x = CognitionResponse{}
-	mi := &file_proto_cortex_proto_msgTypes[5]
+	mi := &file_proto_cortex_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -395,7 +583,7 @@ func (x *CognitionResponse) String() string {
 func (*CognitionResponse) ProtoMessage() {}
 
 func (x *CognitionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[5]
+	mi := &file_proto_cortex_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -408,7 +596,7 @@ func (x *CognitionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CognitionResponse.ProtoReflect.Descriptor instead.
 func (*CognitionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{5}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CognitionResponse) GetCenter() *Node {
@@ -449,7 +637,7 @@ type FactRequest struct {
 
 func (x *FactRequest) Reset() {
 	*x = FactRequest{}
-	mi := &file_proto_cortex_proto_msgTypes[6]
+	mi := &file_proto_cortex_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -461,7 +649,7 @@ func (x *FactRequest) String() string {
 func (*FactRequest) ProtoMessage() {}
 
 func (x *FactRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[6]
+	mi := &file_proto_cortex_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -474,7 +662,7 @@ func (x *FactRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FactRequest.ProtoReflect.Descriptor instead.
 func (*FactRequest) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{6}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *FactRequest) GetQuery() string {
@@ -500,7 +688,7 @@ type FactList struct {
 
 func (x *FactList) Reset() {
 	*x = FactList{}
-	mi := &file_proto_cortex_proto_msgTypes[7]
+	mi := &file_proto_cortex_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +700,7 @@ func (x *FactList) String() string {
 func (*FactList) ProtoMessage() {}
 
 func (x *FactList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_cortex_proto_msgTypes[7]
+	mi := &file_proto_cortex_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -525,7 +713,7 @@ func (x *FactList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FactList.ProtoReflect.Descriptor instead.
 func (*FactList) Descriptor() ([]byte, []int) {
-	return file_proto_cortex_proto_rawDescGZIP(), []int{7}
+	return file_proto_cortex_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *FactList) GetFacts() []*Node {
@@ -539,7 +727,21 @@ var File_proto_cortex_proto protoreflect.FileDescriptor
 
 const file_proto_cortex_proto_rawDesc = "" +
 	"\n" +
-	"\x12proto/cortex.proto\x12\x10wisdom.cortex.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xdb\x01\n" +
+	"\x12proto/cortex.proto\x12\x10wisdom.cortex.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa6\x01\n" +
+	"\x15SemanticSearchRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12#\n" +
+	"\rdomain_filter\x18\x03 \x01(\tR\fdomainFilter\x12\x1f\n" +
+	"\vtype_filter\x18\x04 \x01(\tR\n" +
+	"typeFilter\x12\x1b\n" +
+	"\tmin_score\x18\x05 \x01(\x01R\bminScore\"d\n" +
+	"\fSearchResult\x12*\n" +
+	"\x04node\x18\x01 \x01(\v2\x16.wisdom.cortex.v1.NodeR\x04node\x12\x14\n" +
+	"\x05score\x18\x02 \x01(\x02R\x05score\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\tR\x04mode\"f\n" +
+	"\x16SemanticSearchResponse\x128\n" +
+	"\aresults\x18\x01 \x03(\v2\x1e.wisdom.cortex.v1.SearchResultR\aresults\x12\x12\n" +
+	"\x04mode\x18\x02 \x01(\tR\x04mode\"\xdb\x01\n" +
 	"\rIngestRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x121\n" +
@@ -585,12 +787,13 @@ const file_proto_cortex_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"8\n" +
 	"\bFactList\x12,\n" +
-	"\x05facts\x18\x01 \x03(\v2\x16.wisdom.cortex.v1.NodeR\x05facts2\xe8\x01\n" +
+	"\x05facts\x18\x01 \x03(\v2\x16.wisdom.cortex.v1.NodeR\x05facts2\xcd\x02\n" +
 	"\x06Cortex\x12E\n" +
 	"\bMemorize\x12\x1f.wisdom.cortex.v1.IngestRequest\x1a\x18.wisdom.cortex.v1.NodeID\x12N\n" +
 	"\x06Recall\x12\x1f.wisdom.cortex.v1.RecallRequest\x1a#.wisdom.cortex.v1.CognitionResponse\x12G\n" +
 	"\n" +
-	"QueryFacts\x12\x1d.wisdom.cortex.v1.FactRequest\x1a\x1a.wisdom.cortex.v1.FactListB1Z/github.com/google/wisdom/pkg/cortex/v1;cortexv1b\x06proto3"
+	"QueryFacts\x12\x1d.wisdom.cortex.v1.FactRequest\x1a\x1a.wisdom.cortex.v1.FactList\x12c\n" +
+	"\x0eSemanticSearch\x12'.wisdom.cortex.v1.SemanticSearchRequest\x1a(.wisdom.cortex.v1.SemanticSearchResponseB1Z/github.com/google/wisdom/pkg/cortex/v1;cortexv1b\x06proto3"
 
 var (
 	file_proto_cortex_proto_rawDescOnce sync.Once
@@ -604,45 +807,52 @@ func file_proto_cortex_proto_rawDescGZIP() []byte {
 	return file_proto_cortex_proto_rawDescData
 }
 
-var file_proto_cortex_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_proto_cortex_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_proto_cortex_proto_goTypes = []any{
-	(*IngestRequest)(nil),         // 0: wisdom.cortex.v1.IngestRequest
-	(*NodeID)(nil),                // 1: wisdom.cortex.v1.NodeID
-	(*RecallRequest)(nil),         // 2: wisdom.cortex.v1.RecallRequest
-	(*Node)(nil),                  // 3: wisdom.cortex.v1.Node
-	(*Edge)(nil),                  // 4: wisdom.cortex.v1.Edge
-	(*CognitionResponse)(nil),     // 5: wisdom.cortex.v1.CognitionResponse
-	(*FactRequest)(nil),           // 6: wisdom.cortex.v1.FactRequest
-	(*FactList)(nil),              // 7: wisdom.cortex.v1.FactList
-	nil,                           // 8: wisdom.cortex.v1.FactRequest.MetadataFiltersEntry
-	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
+	(*SemanticSearchRequest)(nil),  // 0: wisdom.cortex.v1.SemanticSearchRequest
+	(*SearchResult)(nil),           // 1: wisdom.cortex.v1.SearchResult
+	(*SemanticSearchResponse)(nil), // 2: wisdom.cortex.v1.SemanticSearchResponse
+	(*IngestRequest)(nil),          // 3: wisdom.cortex.v1.IngestRequest
+	(*NodeID)(nil),                 // 4: wisdom.cortex.v1.NodeID
+	(*RecallRequest)(nil),          // 5: wisdom.cortex.v1.RecallRequest
+	(*Node)(nil),                   // 6: wisdom.cortex.v1.Node
+	(*Edge)(nil),                   // 7: wisdom.cortex.v1.Edge
+	(*CognitionResponse)(nil),      // 8: wisdom.cortex.v1.CognitionResponse
+	(*FactRequest)(nil),            // 9: wisdom.cortex.v1.FactRequest
+	(*FactList)(nil),               // 10: wisdom.cortex.v1.FactList
+	nil,                            // 11: wisdom.cortex.v1.FactRequest.MetadataFiltersEntry
+	(*structpb.Struct)(nil),        // 12: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),  // 13: google.protobuf.Timestamp
 }
 var file_proto_cortex_proto_depIdxs = []int32{
-	9,  // 0: wisdom.cortex.v1.IngestRequest.payload:type_name -> google.protobuf.Struct
-	10, // 1: wisdom.cortex.v1.IngestRequest.ttl:type_name -> google.protobuf.Timestamp
-	9,  // 2: wisdom.cortex.v1.Node.payload:type_name -> google.protobuf.Struct
-	10, // 3: wisdom.cortex.v1.Node.ttl:type_name -> google.protobuf.Timestamp
-	10, // 4: wisdom.cortex.v1.Node.created_at:type_name -> google.protobuf.Timestamp
-	10, // 5: wisdom.cortex.v1.Node.updated_at:type_name -> google.protobuf.Timestamp
-	10, // 6: wisdom.cortex.v1.Edge.created_at:type_name -> google.protobuf.Timestamp
-	3,  // 7: wisdom.cortex.v1.CognitionResponse.center:type_name -> wisdom.cortex.v1.Node
-	4,  // 8: wisdom.cortex.v1.CognitionResponse.out_edges:type_name -> wisdom.cortex.v1.Edge
-	4,  // 9: wisdom.cortex.v1.CognitionResponse.in_edges:type_name -> wisdom.cortex.v1.Edge
-	3,  // 10: wisdom.cortex.v1.CognitionResponse.neighbors:type_name -> wisdom.cortex.v1.Node
-	8,  // 11: wisdom.cortex.v1.FactRequest.metadata_filters:type_name -> wisdom.cortex.v1.FactRequest.MetadataFiltersEntry
-	3,  // 12: wisdom.cortex.v1.FactList.facts:type_name -> wisdom.cortex.v1.Node
-	0,  // 13: wisdom.cortex.v1.Cortex.Memorize:input_type -> wisdom.cortex.v1.IngestRequest
-	2,  // 14: wisdom.cortex.v1.Cortex.Recall:input_type -> wisdom.cortex.v1.RecallRequest
-	6,  // 15: wisdom.cortex.v1.Cortex.QueryFacts:input_type -> wisdom.cortex.v1.FactRequest
-	1,  // 16: wisdom.cortex.v1.Cortex.Memorize:output_type -> wisdom.cortex.v1.NodeID
-	5,  // 17: wisdom.cortex.v1.Cortex.Recall:output_type -> wisdom.cortex.v1.CognitionResponse
-	7,  // 18: wisdom.cortex.v1.Cortex.QueryFacts:output_type -> wisdom.cortex.v1.FactList
-	16, // [16:19] is the sub-list for method output_type
-	13, // [13:16] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	6,  // 0: wisdom.cortex.v1.SearchResult.node:type_name -> wisdom.cortex.v1.Node
+	1,  // 1: wisdom.cortex.v1.SemanticSearchResponse.results:type_name -> wisdom.cortex.v1.SearchResult
+	12, // 2: wisdom.cortex.v1.IngestRequest.payload:type_name -> google.protobuf.Struct
+	13, // 3: wisdom.cortex.v1.IngestRequest.ttl:type_name -> google.protobuf.Timestamp
+	12, // 4: wisdom.cortex.v1.Node.payload:type_name -> google.protobuf.Struct
+	13, // 5: wisdom.cortex.v1.Node.ttl:type_name -> google.protobuf.Timestamp
+	13, // 6: wisdom.cortex.v1.Node.created_at:type_name -> google.protobuf.Timestamp
+	13, // 7: wisdom.cortex.v1.Node.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 8: wisdom.cortex.v1.Edge.created_at:type_name -> google.protobuf.Timestamp
+	6,  // 9: wisdom.cortex.v1.CognitionResponse.center:type_name -> wisdom.cortex.v1.Node
+	7,  // 10: wisdom.cortex.v1.CognitionResponse.out_edges:type_name -> wisdom.cortex.v1.Edge
+	7,  // 11: wisdom.cortex.v1.CognitionResponse.in_edges:type_name -> wisdom.cortex.v1.Edge
+	6,  // 12: wisdom.cortex.v1.CognitionResponse.neighbors:type_name -> wisdom.cortex.v1.Node
+	11, // 13: wisdom.cortex.v1.FactRequest.metadata_filters:type_name -> wisdom.cortex.v1.FactRequest.MetadataFiltersEntry
+	6,  // 14: wisdom.cortex.v1.FactList.facts:type_name -> wisdom.cortex.v1.Node
+	3,  // 15: wisdom.cortex.v1.Cortex.Memorize:input_type -> wisdom.cortex.v1.IngestRequest
+	5,  // 16: wisdom.cortex.v1.Cortex.Recall:input_type -> wisdom.cortex.v1.RecallRequest
+	9,  // 17: wisdom.cortex.v1.Cortex.QueryFacts:input_type -> wisdom.cortex.v1.FactRequest
+	0,  // 18: wisdom.cortex.v1.Cortex.SemanticSearch:input_type -> wisdom.cortex.v1.SemanticSearchRequest
+	4,  // 19: wisdom.cortex.v1.Cortex.Memorize:output_type -> wisdom.cortex.v1.NodeID
+	8,  // 20: wisdom.cortex.v1.Cortex.Recall:output_type -> wisdom.cortex.v1.CognitionResponse
+	10, // 21: wisdom.cortex.v1.Cortex.QueryFacts:output_type -> wisdom.cortex.v1.FactList
+	2,  // 22: wisdom.cortex.v1.Cortex.SemanticSearch:output_type -> wisdom.cortex.v1.SemanticSearchResponse
+	19, // [19:23] is the sub-list for method output_type
+	15, // [15:19] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_proto_cortex_proto_init() }
@@ -656,7 +866,7 @@ func file_proto_cortex_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_cortex_proto_rawDesc), len(file_proto_cortex_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
