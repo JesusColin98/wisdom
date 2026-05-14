@@ -83,12 +83,55 @@ class CortexClient:
         })
 
     def query_facts(self, query: str, filters: dict | None = None) -> list[dict]:
-        """Full-text / metadata search over Cortex nodes."""
+        """JSONB metadata search over Cortex nodes (legacy, non-semantic)."""
         result = _http_post(self.BASE, "/api/v1/query", {
             "query": query,
             "metadata_filters": filters or {},
         })
         return result.get("facts", [])
+
+    def semantic_search(
+        self,
+        query: str,
+        limit: int = 10,
+        domain_filter: str = "",
+        type_filter: str = "",
+        min_score: float = 0.4,
+    ) -> list[dict]:
+        """
+        Hybrid semantic search (pgvector HNSW + full-text) over Cortex nodes.
+
+        Fallback chain:
+          1. pgvector HNSW ANN + full-text RRF fusion (if embeddings exist)
+          2. Full-text ts_content search (schema V3 tsvector)
+          3. JSONB query_facts (if /cortex/search endpoint not yet deployed)
+
+        Returns list of dicts: [{node, score, mode}, ...]
+        """
+        try:
+            result = _http_post(self.BASE, "/api/v1/cortex/search", {
+                "query": query,
+                "limit": limit,
+                "domain_filter": domain_filter,
+                "type_filter": type_filter,
+                "min_score": min_score,
+            })
+            results = result.get("results", [])
+            logger.debug(
+                "SemanticSearch: %d results for '%s' via mode=%s",
+                len(results), query[:60], result.get("mode", "unknown"),
+            )
+            return results
+        except RuntimeError as e:
+            # Graceful fallback: semantic endpoint not available yet — use JSONB.
+            logger.warning("semantic_search unavailable (%s) — falling back to query_facts", e)
+            filters = {"domain": domain_filter} if domain_filter else None
+            facts = self.query_facts(query, filters)
+            return [{"node": f, "score": 0.5, "mode": "jsonb_fallback"} for f in facts]
+
+    def search(self, query: str, domain: str = "", limit: int = 10) -> list[dict]:
+        """Convenience wrapper: semantic_search scoped to a domain."""
+        return self.semantic_search(query=query, domain_filter=domain, limit=limit)
 
 
 # ─── Integrations Client ─────────────────────────────────────────────────────

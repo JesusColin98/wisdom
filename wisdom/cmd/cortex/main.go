@@ -25,15 +25,33 @@ func main() {
 		log.Println("WARNING: DB_CONN_STRING is not set. Database connection may fail.")
 	}
 
-	// Initialize the database engine
+	// Initialize the database engine.
 	engine, err := cortex.NewPostgresEngine(connStr)
 	if err != nil {
 		log.Fatalf("Failed to initialize Postgres engine: %v", err)
 	}
 	defer engine.Close()
 
-	// Initialize the gRPC server implementation
-	cortexServer := cortex.NewServer(engine)
+	// Initialize Vertex AI embedding client (optional — degrades to full-text if unavailable).
+	// Requires GCP_PROJECT_ID env var and Application Default Credentials.
+	var embClient *cortex.EmbeddingClient
+	gcpProject := os.Getenv("GCP_PROJECT_ID")
+	gcpRegion := os.Getenv("GCP_REGION")
+	if gcpProject != "" {
+		embClient, err = cortex.NewEmbeddingClient(gcpProject, gcpRegion)
+		if err != nil {
+			log.Printf("WARNING: Vertex AI embedding client unavailable: %v", err)
+			log.Println("WARNING: Semantic search will fall back to JSONB full-text.")
+			embClient = nil
+		} else {
+			log.Printf("Cortex: Vertex AI embedding client ready (project=%s, region=%s)", gcpProject, gcpRegion)
+		}
+	} else {
+		log.Println("WARNING: GCP_PROJECT_ID not set — semantic search disabled, using JSONB full-text.")
+	}
+
+	// Initialize the gRPC server implementation.
+	cortexServer := cortex.NewServer(engine, embClient)
 
 	// Create standard gRPC server
 	grpcServer := grpc.NewServer()

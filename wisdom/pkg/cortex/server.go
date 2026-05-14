@@ -2,6 +2,7 @@ package cortex
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,19 +12,22 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	pb "github.com/google/wisdom/pkg/cortex/v1" // Assuming this will be the path when compiled
+	pb "github.com/google/wisdom/pkg/cortex/v1"
 )
 
 // Server implements the gRPC Cortex service.
 type Server struct {
 	pb.UnimplementedCortexServer
-	engine *PostgresEngine
+	engine    *PostgresEngine
+	embClient *EmbeddingClient // nil if Vertex AI unavailable (graceful degradation).
 }
 
 // NewServer creates a new Cortex Server.
-func NewServer(engine *PostgresEngine) *Server {
+// embClient is optional — pass nil to disable semantic search (falls back to JSONB).
+func NewServer(engine *PostgresEngine, embClient *EmbeddingClient) *Server {
 	return &Server{
-		engine: engine,
+		engine:    engine,
+		embClient: embClient,
 	}
 }
 
@@ -80,6 +84,19 @@ func (s *Server) Memorize(ctx context.Context, req *pb.IngestRequest) (*pb.NodeI
 		return nil, status.Errorf(codes.Internal, "failed to memorize node: %v", err)
 	}
 
+	// Asynchronously generate and store embedding (non-blocking write path).
+	// If Vertex AI is unavailable, the node is stored without a vector —
+	// SemanticSearch falls back to JSONB full-text search transparently.
+	if s.embClient != nil {
+		go func(id string) {
+			embCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			if err := s.engine.StoreEmbedding(embCtx, id, s.embClient); err != nil {
+				log.Printf("cortex: async embedding failed for %s: %v", id, err)
+			}
+		}(nodeID)
+	}
+
 	return &pb.NodeID{Id: nodeID}, nil
 }
 
@@ -130,7 +147,7 @@ func (s *Server) Recall(ctx context.Context, req *pb.RecallRequest) (*pb.Cogniti
 	}, nil
 }
 
-// QueryFacts retrieves Facts based on metadata filters.
+// QueryFacts retrieves Facts based on metadata filters (JSONB containment search).
 func (s *Server) QueryFacts(ctx context.Context, req *pb.FactRequest) (*pb.FactList, error) {
 	facts, err := s.engine.QueryFacts(ctx, req.MetadataFilters)
 	if err != nil {
@@ -149,6 +166,67 @@ func (s *Server) QueryFacts(ctx context.Context, req *pb.FactRequest) (*pb.FactL
 	return &pb.FactList{
 		Facts: factsPB,
 	}, nil
+}
+
+// SemanticSearch performs hybrid vector+full-text search over Cortex nodes.
+// Falls back to JSONB full-text if pgvector embeddings are unavailable.
+func (s *Server) SemanticSearch(ctx context.Context, req *pb.SemanticSearchRequest) (*pb.SemanticSearchResponse, error) {
+	if req.Query == "" {
+		return nil, status.Error(codes.InvalidArgument, "query is required")
+	}
+
+	limit := int(req.Limit)
+	if limit <= 0 {
+		limit = 10
+	}
+
+	searchReq := SemanticSearchRequest{
+		Query:        req.Query,
+		Limit:        limit,
+		DomainFilter: req.DomainFilter,
+		TypeFilter:   req.TypeFilter,
+		MinScore:     req.MinScore,
+	}
+
+	var results []*SemanticSearchResult
+	var err error
+
+	if s.embClient != nil {
+		// Hybrid: pgvector ANN + full-text RRF fusion.
+		results, err = s.engine.HybridSearch(ctx, searchReq, s.embClient)
+	} else {
+		// Fallback: JSONB full-text only.
+		results, err = s.engine.fullTextFallback(ctx, searchReq)
+	}
+
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "semantic search failed: %v", err)
+	}
+
+	pbResults := make([]*pb.SearchResult, 0, len(results))
+	for _, r := range results {
+		pbNode, convErr := nodeToPB(r.Node)
+		if convErr != nil {
+			continue
+		}
+		pbResults = append(pbResults, &pb.SearchResult{
+			Node:  pbNode,
+			Score: float32(r.Score),
+			Mode:  r.Mode,
+		})
+	}
+
+	return &pb.SemanticSearchResponse{
+		Results: pbResults,
+		Mode:    modeFromResults(results),
+	}, nil
+}
+
+func modeFromResults(results []*SemanticSearchResult) string {
+	if len(results) == 0 {
+		return "empty"
+	}
+	return results[0].Mode
 }
 
 func nodeToPB(n *Node) (*pb.Node, error) {
