@@ -30,6 +30,7 @@ type Config struct {
 	AnkiMCPURL          string // e.g., "http://localhost:3334"
 	GCPProject          string
 	AnkiPollIntervalSec int
+	DefaultUserID       string // User whose Anki reviews are polled by the background loop
 }
 
 // Server implements IntegrationsServer.
@@ -128,36 +129,6 @@ func (s *Server) CreateCard(ctx context.Context, req *pb.CardRequest) (*pb.Integ
 	return &pb.IntegrationResult{Success: true, Status: "SYNCED"}, nil
 }
 
-// GetPendingQueue returns all items awaiting sync for a user.
-func (s *Server) GetPendingQueue(ctx context.Context, req *pb.QueueRequest) (*pb.PendingQueue, error) {
-	if req.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user_id is required")
-	}
-	// TODO: Query Cortex for nodes of type "Signal" with status="PENDING_SYNC" and user_id match.
-	return &pb.PendingQueue{Items: []*pb.PendingItem{}, TotalCount: 0}, nil
-}
-
-// RetryPendingSync attempts to re-send all queued items to their MCP servers.
-func (s *Server) RetryPendingSync(ctx context.Context, req *pb.QueueRequest) (*pb.RetryResult, error) {
-	queue, err := s.GetPendingQueue(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-
-	var succeeded, failed int32
-	for _, item := range queue.Items {
-		_ = item
-		// TODO: Deserialize payload_json, determine target app, re-call MCP.
-		succeeded++
-	}
-
-	return &pb.RetryResult{
-		Succeeded:    succeeded,
-		Failed:       failed,
-		StillPending: 0,
-	}, nil
-}
-
 // ProcessAnkiReviews is called by the internal Anki polling goroutine.
 // It forwards the batch to the Mastery service for MasteryScore updates.
 func (s *Server) ProcessAnkiReviews(ctx context.Context, req *pb.AnkiReviewBatch) (*pb.AnkiSyncResult, error) {
@@ -191,26 +162,6 @@ func (s *Server) ProcessAnkiReviews(ctx context.Context, req *pb.AnkiReviewBatch
 	}, nil
 }
 
-// StartAnkiPoller runs the background polling loop (every 15 minutes by spec).
-// Must be called as a goroutine from cmd/integrations/main.go.
-func (s *Server) StartAnkiPoller() {
-	interval := time.Duration(s.cfg.AnkiPollIntervalSec) * time.Second
-	log.Printf("Anki polling loop started (interval: %v)", interval)
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		ctx := context.Background()
-		log.Println("Anki poller: fetching reviews...")
-
-		// TODO: Call AnkiConnect via Anki MCP server to get recent reviews.
-		// Call s.ProcessAnkiReviews with the batch.
-		// Use review_id (Anki timestamp) to deduplicate via Cortex.
-		_ = ctx
-	}
-}
-
 // ─── Internal Helpers ────────────────────────────────────────────────────────
 
 func (s *Server) callMCPServer(ctx context.Context, url string, payload any) error {
@@ -234,13 +185,6 @@ func (s *Server) callMCPServer(ctx context.Context, url string, payload any) err
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("MCP server returned HTTP %d", resp.StatusCode)
 	}
-	return nil
-}
-
-func (s *Server) queuePendingItem(ctx context.Context, itemType, targetApp string, payload any) error {
-	data, _ := json.Marshal(payload)
-	_ = data
-	// TODO: Store in Cortex with type="Signal", status="PENDING_SYNC".
 	return nil
 }
 
