@@ -1,16 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Wisdom Cognitive Runtime — Cloud Build CI/CD Pipeline
-#
-# Triggered on push to `main` branch.
-# Builds and deploys all 9 microservices in the correct dependency order.
-#
-# Dependency order:
-#   Protobuf → Go services (parallel) → Python ADK Router → Portal → Deploy
-#
-# Image naming convention:
-#   {REGION}-docker.pkg.dev/{PROJECT_ID}/wisdom-repo/wisdom-{service}:latest
-# ─────────────────────────────────────────────────────────────────────────────
-
 substitutions:
   _REGION: us-central1
   _REPO: wisdom-repo
@@ -29,15 +16,14 @@ steps:
         go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
         export PATH="$$PATH:$$(go env GOPATH)/bin"
-        echo "→ Generating protobufs..."
+        echo "Generating protobufs..."
         protoc --go_out=. --go_opt=module=github.com/google/wisdom \
                --go-grpc_out=. --go-grpc_opt=module=github.com/google/wisdom \
                proto/cortex.proto proto/thalamus.proto proto/mastery.proto \
                proto/researcher.proto proto/curriculum.proto proto/integrations.proto \
                proto/entity.proto proto/pubsub_events.proto
-        # Remove manual stubs — protoc output takes precedence.
         find pkg -name 'stubs.go' -delete || true
-        echo "✓ Protobufs generated"
+        echo "Protobufs generated"
 
   # ─── Phase 2: Go Build Verification ──────────────────────────────────────
   - id: go-build-check
@@ -47,10 +33,11 @@ steps:
     args:
       - -c
       - |
-        echo "→ Verifying go build ./..."
+        echo "Verifying go build..."
         go build ./...
-        echo "✓ Go build clean"
-    waitFor: [gen-protos]
+        echo "Go build clean"
+    waitFor:
+      - gen-protos
 
   # ─── Phase 3: Build Go Service Images (parallel) ─────────────────────────
   - id: build-cortex
@@ -64,7 +51,8 @@ steps:
       - -f
       - wisdom/Dockerfile.cortex
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-thalamus
     name: gcr.io/cloud-builders/docker
@@ -77,7 +65,8 @@ steps:
       - -f
       - wisdom/Dockerfile.thalamus
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-mastery
     name: gcr.io/cloud-builders/docker
@@ -90,7 +79,8 @@ steps:
       - -f
       - wisdom/Dockerfile.mastery
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-researcher
     name: gcr.io/cloud-builders/docker
@@ -103,7 +93,8 @@ steps:
       - -f
       - wisdom/Dockerfile.researcher
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-curriculum
     name: gcr.io/cloud-builders/docker
@@ -116,7 +107,8 @@ steps:
       - -f
       - wisdom/Dockerfile.curriculum
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-integrations
     name: gcr.io/cloud-builders/docker
@@ -129,7 +121,8 @@ steps:
       - -f
       - wisdom/Dockerfile.integrations
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   - id: build-entity
     name: gcr.io/cloud-builders/docker
@@ -142,9 +135,11 @@ steps:
       - -f
       - wisdom/Dockerfile.entity
       - ./wisdom
-    waitFor: [go-build-check]
+    waitFor:
+      - go-build-check
 
   # ─── Phase 4: Build Python ADK Router ────────────────────────────────────
+  # Builds in parallel with Go services (no dependency on go-build-check).
   - id: build-adk-router
     name: gcr.io/cloud-builders/docker
     args:
@@ -154,51 +149,82 @@ steps:
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:latest
       - ./adk-router
-    waitFor: ['-']  # Can build in parallel with Go services.
 
   # ─── Phase 5: Push All Images (parallel) ─────────────────────────────────
   - id: push-cortex
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex]
-    waitFor: [build-cortex]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex
+    waitFor:
+      - build-cortex
 
   - id: push-thalamus
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus]
-    waitFor: [build-thalamus]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus
+    waitFor:
+      - build-thalamus
 
   - id: push-mastery
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery]
-    waitFor: [build-mastery]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery
+    waitFor:
+      - build-mastery
 
   - id: push-researcher
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher]
-    waitFor: [build-researcher]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher
+    waitFor:
+      - build-researcher
 
   - id: push-curriculum
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum]
-    waitFor: [build-curriculum]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum
+    waitFor:
+      - build-curriculum
 
   - id: push-integrations
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations]
-    waitFor: [build-integrations]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations
+    waitFor:
+      - build-integrations
 
   - id: push-entity
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity]
-    waitFor: [build-entity]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity
+    waitFor:
+      - build-entity
 
   - id: push-adk-router
     name: gcr.io/cloud-builders/docker
-    args: [push, --all-tags, ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router]
-    waitFor: [build-adk-router]
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router
+    waitFor:
+      - build-adk-router
 
   # ─── Phase 6: Deploy to Cloud Run (dependency order) ─────────────────────
-  # Cortex first (all services depend on it).
+  # Cortex first — all other services depend on it.
   - id: deploy-cortex
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
@@ -209,9 +235,10 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA
       - --region=${_REGION}
       - --platform=managed
-      - --no-traffic        # Deploy new revision without traffic.
+      - --no-traffic
       - --tag=canary
-    waitFor: [push-cortex]
+    waitFor:
+      - push-cortex
 
   - id: promote-cortex
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -223,51 +250,107 @@ steps:
       - wisdom-cortex
       - --to-latest
       - --region=${_REGION}
-    waitFor: [deploy-cortex]
+    waitFor:
+      - deploy-cortex
 
-  # Deploy all other Go services in parallel (after Cortex is live).
+  # Deploy all Go services in parallel (after Cortex is live).
   - id: deploy-mastery
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-mastery, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-mastery, promote-cortex]
+    args:
+      - run
+      - deploy
+      - wisdom-mastery
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-mastery
+      - promote-cortex
 
   - id: deploy-researcher
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-researcher, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-researcher, promote-cortex]
+    args:
+      - run
+      - deploy
+      - wisdom-researcher
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-researcher
+      - promote-cortex
 
   - id: deploy-curriculum
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-curriculum, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-curriculum, promote-cortex]
+    args:
+      - run
+      - deploy
+      - wisdom-curriculum
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-curriculum:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-curriculum
+      - promote-cortex
 
   - id: deploy-integrations
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-integrations, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-integrations, promote-cortex]
+    args:
+      - run
+      - deploy
+      - wisdom-integrations
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-integrations
+      - promote-cortex
 
   - id: deploy-entity
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-entity, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-entity, promote-cortex]
+    args:
+      - run
+      - deploy
+      - wisdom-entity
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-entity
+      - promote-cortex
 
   # ADK Router after Mastery + Integrations are ready.
   - id: deploy-adk-router
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-adk-router, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA, --region=${_REGION}, --platform=managed]
-    waitFor: [push-adk-router, deploy-mastery, deploy-integrations]
+    args:
+      - run
+      - deploy
+      - wisdom-adk-router
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+    waitFor:
+      - push-adk-router
+      - deploy-mastery
+      - deploy-integrations
 
-  # Thalamus last (the public gateway — only live when backend is ready).
+  # Thalamus last — public gateway, only live when backend is ready.
   - id: deploy-thalamus
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
-    args: [run, deploy, wisdom-thalamus, --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA, --region=${_REGION}, --platform=managed]
+    args:
+      - run
+      - deploy
+      - wisdom-thalamus
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA
+      - --region=${_REGION}
+      - --platform=managed
     waitFor:
       - push-thalamus
       - deploy-adk-router
@@ -287,7 +370,7 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8     # Parallel builds need more CPU.
+  machineType: E2_HIGHCPU_8
   substitutionOption: ALLOW_LOOSE
 
-timeout: 1800s  # 30 minutes for the full pipeline.
+timeout: 1800s
