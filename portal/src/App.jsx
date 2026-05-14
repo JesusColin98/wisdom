@@ -11,7 +11,11 @@ import {
   FileText, 
   Sparkles,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  MonitorDot,
+  Rss,
+  CloudOff,
+  BookOpen
 } from 'lucide-react';
 import { WisdomProvider, useWisdom } from './context/WisdomContext';
 import GraphView from './components/GraphView';
@@ -20,6 +24,10 @@ import ChatView from './components/ChatView';
 import NoteEditor from './components/NoteEditor';
 import ReviewView from './components/ReviewView';
 import LearningView from './components/LearningView';
+import MissionControlView from './components/MissionControlView';
+import ResearcherView from './components/ResearcherView';
+import StagingAreaView from './components/StagingAreaView';
+import StudyView from './components/StudyView';
 
 function AppContent() {
   const { 
@@ -63,6 +71,7 @@ function AppContent() {
           {[
             { id: 'GRAPH', label: 'Knowledge Graph', icon: <Network size={18} /> },
             { id: 'CHAT', label: 'Conversational', icon: <MessageSquare size={18} /> },
+            { id: 'STUDY', label: 'Study Session', icon: <BookOpen size={18} /> },
             { id: 'REVIEW', label: 'Spaced Repetition', icon: <Sparkles size={18} /> },
             { id: 'NOTES', label: 'Note Repository', icon: <FileText size={18} /> },
             { id: 'METABOLISM', label: 'Metabolic Audit', icon: <Activity size={18} /> },
@@ -71,6 +80,31 @@ function AppContent() {
               key={item.id}
               onClick={() => setView(item.id)}
               className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${     
+                view === item.id
+                  ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20'
+                  : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-100'
+              }`}
+            >
+              <span className={`transition-transform duration-300 ${view === item.id ? 'scale-110' : 'group-hover:scale-110 relative z-10'}`}>
+                {item.icon}
+              </span>
+              <span className="text-sm tracking-tight relative z-10">{item.label}</span>
+              {view === item.id && (
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+              )}
+            </button>
+          ))}
+
+          <div className="px-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 mt-5">Observability</div>
+          {[
+            { id: 'MISSION', label: 'Mission Control', icon: <MonitorDot size={18} /> },
+            { id: 'RESEARCHER', label: 'Researcher', icon: <Rss size={18} /> },
+            { id: 'STAGING', label: 'Staging Area', icon: <CloudOff size={18} /> },
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id)}
+              className={`w-full flex items-center gap-3.5 p-3 rounded-xl transition-all duration-300 group relative overflow-hidden ${
                 view === item.id
                   ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-500/20'
                   : 'text-gray-400 hover:bg-gray-800/60 hover:text-gray-100'
@@ -266,6 +300,26 @@ function AppContent() {
               initialNode={editingNode} 
               onBack={() => setView('GRAPH')} 
             />
+          </div>
+        )}
+        {view === 'STUDY' && (
+          <div className="h-full overflow-hidden">
+            <StudyView />
+          </div>
+        )}
+        {view === 'MISSION' && (
+          <div className="h-full overflow-hidden">
+            <MissionControlView />
+          </div>
+        )}
+        {view === 'RESEARCHER' && (
+          <div className="h-full overflow-hidden">
+            <ResearcherView />
+          </div>
+        )}
+        {view === 'STAGING' && (
+          <div className="h-full overflow-hidden">
+            <StagingAreaView />
           </div>
         )}
       </div>
