@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package wisdom.curriculum.v1;
+
+option go_package = "github.com/google/wisdom/pkg/curriculum/v1;curriculumv1";
+
+// Wisdom-Curriculum: transforms raw research into structured learning paths.
+// The "Academic Dean" — organizes knowledge into a recursive hierarchy.
+service Curriculum {
+  // Generate a learning path for a topic at a given skill level.
+  rpc GeneratePath(PathRequest) returns (LearningPath);
+  // Map prerequisite dependencies between a list of concept nodes.
+  rpc MapDependencies(NodeList) returns (DependencyGraph);
+  // Assign a difficulty tier (1-5) to a module based on content analysis.
+  rpc AssignDifficulty(DifficultyRequest) returns (DifficultyResult);
+  // Re-prioritize modules for a user based on their struggle signals.
+  rpc ReprioritizeForUser(ReprioritizeRequest) returns (LearningPath);
+}
+
+message PathRequest {
+  string topic        = 1; // e.g., "React Server Components"
+  string domain       = 2; // "technology", "chess", "finance", "language"
+  int32  target_level = 3; // 1: Beginner, 5: Expert
+  string user_id      = 4; // Used to filter out already mastered concepts
+}
+
+message Module {
+  string id          = 1;
+  string title       = 2;
+  string description = 3;
+  int32  difficulty  = 4; // 1-5
+  repeated string prerequisite_ids = 5; // IDs of modules that must come first
+  repeated string concept_node_ids = 6; // Cortex node IDs for atomic concepts
+}
+
+message LearningPath {
+  string topic_id        = 1;
+  string topic_title     = 2;
+  string domain          = 3;
+  repeated Module modules = 4;
+}
+
+message NodeList {
+  repeated string node_ids = 1;
+}
+
+message Dependency {
+  string from_node_id = 1; // Prerequisite
+  string to_node_id   = 2; // Dependent concept
+  string relation     = 3; // "PREREQUISITE_OF", "PART_OF", "EXTENDS"
+}
+
+message DependencyGraph {
+  repeated Dependency edges = 1;
+}
+
+message DifficultyRequest {
+  string node_id  = 1;
+  string content  = 2; // Raw content to analyze
+}
+
+message DifficultyResult {
+  string node_id  = 1;
+  int32  tier     = 2; // 1-5
+  string rationale = 3;
+}
+
+message ReprioritizeRequest {
+  string user_id          = 1;
+  repeated string struggle_node_ids = 2; // Concepts flagged as FRAGILE by Trace
+}

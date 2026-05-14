@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package wisdom.mastery.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/google/wisdom/pkg/mastery/v1;masteryv1";
+
+// Wisdom-Mastery: unified Trace (tracking) + Metabolism (scheduling) service.
+// Trace and Metabolism are cohesive: interval calculation requires mastery state.
+service Mastery {
+  // --- Trace RPCs ---
+  // Record a study event (Anki review, Portal flashcard, reading passage).
+  rpc RecordEngagement(TraceEvent) returns (TraceUpdate);
+  // Get concepts the user is weakest on (lowest MasteryScore).
+  rpc GetWeaknesses(UserRequest) returns (ConceptList);
+  // Get concepts the user has dominated (highest MasteryScore).
+  rpc GetStrengths(UserRequest) returns (ConceptList);
+  // Sync a batch of Anki review grades into internal MasteryScores.
+  rpc SyncAnkiReviews(AnkiReviewBatch) returns (SyncResult);
+
+  // --- Metabolism RPCs ---
+  // Get all concepts due for review for a given user (feeds Portal SRS UI).
+  rpc GetDueCards(UserRequest) returns (DueCardList);
+  // After a review, compute and store the next review interval.
+  rpc ScheduleNextReview(ReviewOutcome) returns (ScheduleResult);
+}
+
+// --- Trace Messages ---
+
+message TraceEvent {
+  string user_id   = 1;
+  string node_id   = 2; // The concept node in Cortex
+  int32  score     = 3; // 1-5 scale (maps to Anki Again/Hard/Good/Easy/+)
+  string context   = 4; // "ANKI", "PORTAL", "READING", "CHAT"
+  google.protobuf.Timestamp reviewed_at = 5;
+}
+
+message TraceUpdate {
+  string node_id        = 1;
+  double mastery_score  = 2; // Clamped 0.0 to 1.0
+  string new_status     = 3; // "FRAGILE", "LEARNING", "DOMINATED"
+}
+
+message UserRequest {
+  string user_id = 1;
+  int32  limit   = 2; // Max results to return
+}
+
+message Concept {
+  string node_id        = 1;
+  string title          = 2;
+  double mastery_score  = 3;
+  double retention_rate = 4; // Based on Ebbinghaus forgetting curve
+  google.protobuf.Timestamp last_reviewed_at = 5;
+}
+
+message ConceptList {
+  repeated Concept concepts = 1;
+}
+
+// Batch sync from Anki polling (from Integrations service).
+message AnkiReviewBatch {
+  string user_id              = 1;
+  repeated AnkiReview reviews = 2;
+}
+
+message AnkiReview {
+  string anki_card_id  = 1; // Anki internal card ID
+  string wisdom_node_id = 2; // Matching Cortex node
+  int32  grade         = 3; // 1=Again, 2=Hard, 3=Good, 4=Easy
+  string review_id     = 4; // Anki timestamp, used for deduplication
+  google.protobuf.Timestamp reviewed_at = 5;
+}
+
+message SyncResult {
+  int32 synced_count     = 1;
+  int32 skipped_count    = 2; // Already processed (dedup)
+  int32 error_count      = 3;
+}
+
+// --- Metabolism Messages ---
+
+message DueCard {
+  string node_id              = 1;
+  string title                = 2;
+  double mastery_score        = 3;
+  google.protobuf.Timestamp due_at = 4;
+}
+
+message DueCardList {
+  repeated DueCard cards = 1;
+}
+
+message ReviewOutcome {
+  string user_id   = 1;
+  string node_id   = 2;
+  int32  grade     = 3; // 1-4 Anki scale
+  string scheduler = 4; // "WISDOM" or "ANKI" — determines master scheduler
+}
+
+message ScheduleResult {
+  string node_id              = 1;
+  google.protobuf.Timestamp next_review_at = 2;
+  int32  interval_days        = 3;
+}

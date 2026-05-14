@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Compass, 
-  Youtube, 
+  PlayCircle, 
   FileText, 
   Search, 
   Loader2, 

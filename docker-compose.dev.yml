@@ -1,0 +1,152 @@
+# docker-compose.dev.yml
+# Local development orchestration for Wisdom Cognitive Runtime.
+# Runs all Go microservices + PostgreSQL.
+# The ADK Router (Python) runs separately via: cd adk-router && uvicorn main:app
+# MCP servers (Obsidian, Anki) run locally on the user's machine.
+#
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────────
+  # Layer 5: Factual Substrate
+  # ─────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: wisdom-postgres
+    environment:
+      POSTGRES_DB: wisdom
+      POSTGRES_USER: wisdom
+      POSTGRES_PASSWORD: wisdom_dev_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./wisdom/pkg/cortex/schema_v2.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wisdom"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cortex:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.cortex
+    container_name: wisdom-cortex
+    ports:
+      - "50051:50051"
+    environment:
+      PORT: "50051"
+      DB_CONN_STRING: "host=postgres user=wisdom password=wisdom_dev_secret dbname=wisdom sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # Layer 2: Orchestration Gateway
+  # ─────────────────────────────────────────────
+
+  thalamus:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.thalamus
+    container_name: wisdom-thalamus
+    ports:
+      - "50052:50052"  # gRPC
+      - "8080:8080"    # HTTP gateway for Portal and external calls
+    environment:
+      PORT: "50052"
+      CORTEX_GRPC_URL: "cortex:50051"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+    depends_on:
+      - cortex
+
+  # ─────────────────────────────────────────────
+  # Layer 5: Specialized Go Microservices
+  # ─────────────────────────────────────────────
+
+  mastery:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.mastery
+    container_name: wisdom-mastery
+    ports:
+      - "50053:50053"
+    environment:
+      PORT: "50053"
+      CORTEX_GRPC_URL: "cortex:50051"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+    depends_on:
+      - cortex
+
+  researcher:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.researcher
+    container_name: wisdom-researcher
+    ports:
+      - "50054:50054"
+    environment:
+      PORT: "50054"
+      GCS_INGESTION_BUCKET: "${GCS_INGESTION_BUCKET:-wisdom-ingestion-dev}"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+    depends_on:
+      - cortex
+
+  curriculum:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.curriculum
+    container_name: wisdom-curriculum
+    ports:
+      - "50055:50055"
+    environment:
+      PORT: "50055"
+      CORTEX_GRPC_URL: "cortex:50051"
+      MASTERY_GRPC_URL: "mastery:50053"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+    depends_on:
+      - cortex
+      - mastery
+
+  integrations:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.integrations
+    container_name: wisdom-integrations
+    ports:
+      - "50056:50056"
+    environment:
+      PORT: "50056"
+      CORTEX_GRPC_URL: "cortex:50051"
+      MASTERY_GRPC_URL: "mastery:50053"
+      # MCP servers run on the HOST machine (user's local machine), not in Docker.
+      # Use host.docker.internal to reach localhost from within a container.
+      OBSIDIAN_MCP_URL: "http://host.docker.internal:3333"
+      ANKI_MCP_URL: "http://host.docker.internal:3334"
+      GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
+    depends_on:
+      - cortex
+      - mastery
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  entity:
+    build:
+      context: ./wisdom
+      dockerfile: Dockerfile.entity
+    container_name: wisdom-entity
+    ports:
+      - "50057:50057"
+    environment:
+      PORT: "50057"
+      CORTEX_GRPC_URL: "cortex:50051"
+    depends_on:
+      - cortex
+
+volumes:
+  postgres_data:

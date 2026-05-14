@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package wisdom.events.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/google/wisdom/pkg/events/v1;eventsv1";
+
+// GCP Pub/Sub Event Envelope for Wisdom Cognitive Runtime.
+// All async inter-service communication uses this schema.
+//
+// Topics:
+//   wisdom.knowledge.ingested      — Publisher: Researcher | Subscriber: Cortex
+//   wisdom.learning.path_created   — Publisher: Curriculum | Subscriber: Mastery
+//   wisdom.user.struggle_detected  — Publisher: Mastery    | Subscriber: Curriculum
+//   wisdom.memory.consolidation    — Publisher: Mastery    | Subscriber: ADK Router
+//   wisdom.integrations.sync_ready — Publisher: Integrations | Subscriber: Portal (WebSocket)
+
+// The outer envelope for every Pub/Sub message.
+message WisdomEvent {
+  string event_id   = 1; // UUID v4
+  string topic      = 2; // e.g., "wisdom.knowledge.ingested"
+  string user_id    = 3;
+  google.protobuf.Timestamp published_at = 4;
+  // The actual payload — one of the message types below, serialized as JSON.
+  google.protobuf.Struct payload = 5;
+}
+
+// --- wisdom.knowledge.ingested ---
+// Triggered by Researcher when a scrape job finishes.
+// Subscriber: Cortex (triggers indexing and embedding).
+message KnowledgeIngestedEvent {
+  string job_id    = 1;
+  string source    = 2; // URL or GCS URI
+  string domain    = 3;
+  int32  node_count = 4; // Number of new nodes created in Cortex
+  string gcs_uri   = 5; // URI to raw content in GCS (if large)
+}
+
+// --- wisdom.learning.path_created ---
+// Triggered by Curriculum when a new learning path is generated.
+// Subscriber: Mastery (initializes progress markers per concept).
+message LearningPathCreatedEvent {
+  string path_id   = 1;
+  string topic     = 2;
+  string user_id   = 3;
+  repeated string module_ids = 4;
+}
+
+// --- wisdom.user.struggle_detected ---
+// Triggered by Mastery when MasteryScore drops below 0.3 (FRAGILE status).
+// Subscriber: Curriculum (re-prioritizes the user's learning path).
+message StruggleDetectedEvent {
+  string user_id   = 1;
+  string node_id   = 2;
+  string node_title = 3;
+  double mastery_score = 4;
+  string domain    = 5;
+}
+
+// --- wisdom.memory.consolidation ---
+// Triggered by ADK Router after GenerateMemories completes.
+// Subscriber: Portal WebSocket bridge (notifies user of memory update).
+message MemoryConsolidationEvent {
+  string session_id      = 1;
+  int32  facts_extracted = 2;
+  repeated string topics = 3; // e.g., ["CHESS_OPENINGS", "ELO_PROGRESS"]
+  string agent_name      = 4;
+}
+
+// --- wisdom.integrations.sync_ready ---
+// Triggered by Integrations when PENDING_SYNC items become available for retry.
+// Subscriber: Portal WebSocket bridge (shows notification in Mission Control).
+message SyncReadyEvent {
+  string user_id       = 1;
+  int32  pending_notes = 2;
+  int32  pending_cards = 3;
+  string message       = 4; // e.g., "5 Anki cards pending. Please open Anki to sync."
+}

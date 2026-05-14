@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package wisdom.integrations.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/google/wisdom/pkg/integrations/v1;integrationsv1";
+
+// Wisdom-Integrations: the single authoritative bridge between Expert Agents
+// and external UI tools (Obsidian, Anki, Logseq).
+// Rule: Expert Agents NEVER call MCP servers directly. All requests go through here.
+service Integrations {
+  // Create an Obsidian/Logseq Markdown note.
+  rpc CreateNote(NoteRequest) returns (IntegrationResult);
+  // Create an Anki flashcard in a given deck.
+  rpc CreateCard(CardRequest) returns (IntegrationResult);
+  // Get all items currently pending sync (MCP server was offline).
+  rpc GetPendingQueue(QueueRequest) returns (PendingQueue);
+  // Retry all pending items in the queue.
+  rpc RetryPendingSync(QueueRequest) returns (RetryResult);
+  // Receive an Anki review batch (called by the internal Anki polling job).
+  rpc ProcessAnkiReviews(AnkiReviewBatch) returns (AnkiSyncResult);
+}
+
+// --- Note Creation (Obsidian / Logseq) ---
+
+message NoteMetadata {
+  string title             = 1;
+  repeated string tags     = 2;
+  repeated string aliases  = 3;
+  double mastery_score     = 4;
+  string domain            = 5; // "chess", "technology", etc.
+}
+
+message NoteRequest {
+  string agent_name        = 1; // Which Expert Agent is sending this
+  string user_id           = 2;
+  NoteMetadata metadata    = 3;
+  string content           = 4; // Full Markdown content with Wikilinks
+  repeated string relationships = 5; // e.g., ["[[React Hooks]]", "[[Fiber]]"]
+  string target_path       = 6; // e.g., "Vault/Tech/React/RSC.md"
+}
+
+// --- Card Creation (Anki) ---
+
+enum AnkiCardType {
+  BASIC = 0;  // Wisdom-Basic schema (front/back)
+  CLOZE = 1;  // Wisdom-Cloze schema (for language/code)
+}
+
+message CardRequest {
+  string agent_name    = 1;
+  string user_id       = 2;
+  string deck_name     = 3;   // e.g., "Wisdom::Chess::Tactics"
+  AnkiCardType card_type = 4;
+  string front         = 5;   // Front of card (Markdown/HTML)
+  string back          = 6;   // Back with answer + [[Wikilink]] to Obsidian source
+  string cloze_text    = 7;   // For CLOZE type: text with {{c1::...}} deletions
+  string extra         = 8;   // Grammar rules or additional context
+  repeated string tags = 9;
+  string wisdom_node_id = 10; // Cortex node ID for mastery sync
+}
+
+// --- Common Result ---
+
+message IntegrationResult {
+  bool   success       = 1;
+  string external_id   = 2; // Obsidian note path or Anki card ID
+  string status        = 3; // "SYNCED", "PENDING_SYNC", "ERROR"
+  string error_message = 4;
+}
+
+// --- Pending Queue ---
+
+message QueueRequest {
+  string user_id = 1;
+}
+
+message PendingItem {
+  string item_id      = 1;
+  string item_type    = 2; // "NOTE" or "CARD"
+  string target_app   = 3; // "OBSIDIAN", "ANKI", "LOGSEQ"
+  string payload_json = 4; // Serialized original request
+  int32  retry_count  = 5;
+  google.protobuf.Timestamp queued_at = 6;
+}
+
+message PendingQueue {
+  repeated PendingItem items = 1;
+  int32 total_count          = 2;
+}
+
+message RetryResult {
+  int32 succeeded = 1;
+  int32 failed    = 2;
+  int32 still_pending = 3;
+}
+
+// --- Anki Review Sync ---
+
+message AnkiReviewEntry {
+  string anki_card_id   = 1;
+  string wisdom_node_id = 2;
+  int32  grade          = 3; // 1=Again, 2=Hard, 3=Good, 4=Easy
+  string review_id      = 4; // Anki timestamp — used for deduplication
+  google.protobuf.Timestamp reviewed_at = 5;
+}
+
+message AnkiReviewBatch {
+  string user_id                    = 1;
+  repeated AnkiReviewEntry reviews  = 2;
+}
+
+message AnkiSyncResult {
+  int32 synced_count  = 1;
+  int32 skipped_count = 2; // Deduplication hits
+  int32 error_count   = 3;
+}

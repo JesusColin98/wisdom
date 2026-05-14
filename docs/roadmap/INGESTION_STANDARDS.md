@@ -1,44 +1,43 @@
-# Ingestion & Interoperability: Ecosystem Standards
+# Ingestion & Export Standards
 
-Wisdom adopts a "Multi-Source, Unified Format" strategy to ensure modularity with tools like Obsidian and Logseq while enabling complex ingestion from the web and chat.
+To ensure a seamless user experience, Wisdom delegates the User Interface for Knowledge Management to **Obsidian** and **Logseq**, and Spaced Repetition to **Anki**. This requires strict adherence to ingestion and formatting standards.
 
-## 1. Supported Ecosystems (Interoperability)
+## 1. Obsidian Markdown Guarantees
+When an Expert Agent generates a note, it MUST comply with the following standards so it integrates natively into the user's local Obsidian Vault via the `obsidian-mcp-server`:
 
-| Tool | Interop Level | Wisdom Strategy |
-| :--- | :--- | :--- |
-| **Obsidian** | High (Native) | Directly index Obsidian vaults. Respect [[Links]] and YAML metadata. |
-| **Logseq** | Medium (Format) | Parse block-level properties (`key:: value`) and bullet hierarchies. |
-| **Anytype** | Low (Export) | Import via Markdown export. Support Anytype-style Relations mapping. |
-| **Tana** | Low (API/Paste) | Support "Tana Paste" formatted input for structured list ingestion. |
+*   **YAML Frontmatter:** Every file must start with valid YAML containing structural metadata.
+    ```yaml
+    ---
+    id: 20260514120000
+    title: "The Caro-Kann Defense"
+    aliases: ["Caro-Kann", "B10"]
+    tags: ["#chess/openings", "#black"]
+    mastery_score: 0.45
+    ---
+    ```
+*   **Wikilinks:** Relationships between concepts must use strict Obsidian wikilinks: `[[Concept Name]]` or `[[Concept Name|Display Text]]`.
+*   **Atomic Notes:** Information should be broken down into atomic, self-contained concepts to maximize graph connectivity.
+*   **Directory Structure:** Files must be saved into a logical folder hierarchy (e.g., `Vault/Chess/Openings/Caro-Kann.md`).
 
-## 2. Ingestion Pipelines
+## 2. Logseq Compatibility (Block-Level Graphs)
+For users utilizing Logseq, Wisdom must support outliner-style logic:
+*   **Block References:** When inserting content via `mcp-logseq`, use atomic blocks (bullet points).
+*   **Hierarchy:** Maintain parent-child block relationships for properties and definitions.
 
-### A. Local Ingestion (The Vault)
-- **Mechanism**: File-system watcher on configured directories.
-- **Protocol**: Converts `.md`, `.canvas`, and `.pdf` into `Cortex` nodes.
-- **Modularity**: Users can "Mount" an Obsidian vault as a `Thought Space` (Namespace) in Wisdom.
+## 3. Anki Export Schemas
+Wisdom pushes flashcards to Anki via `anki-mcp-server` using strict, predefined Note Types to ensure the UI in Anki is clean and functional.
 
-### B. Internet Ingestion (The Researcher)
-- **Mechanism**: Stream research results as Markdown signals.
-- **Metadata Standard**: Every web signal must include:
-    - `source_url`: URL of the page.
-    - `ingested_at`: ISO timestamp.
-    - `content_hash`: For de-duplication.
-    - `tags`: Identified topics.
+### Schema: `Wisdom-Basic`
+*   **Front:** The question or prompt (Supports Markdown/HTML).
+*   **Back:** The answer, explanation, and a `[[Wikilink]]` back to the Obsidian source note.
+*   **Tags:** Hierarchical tags (e.g., `Wisdom::Chess::Tactics`).
 
-### C. Conversational Ingestion (The REM Cycle)
-- **Mechanism**: During `/chat`, ephemeral nodes are created in the `Hippocampus`.
-- **Promotion**: During the REM cycle, the `REMService` analyzes these nodes. If they contain high-signal entities (@, #) or significant facts, they are promoted to the permanent `Cortex`.
+### Schema: `Wisdom-Cloze` (For Languages/Code)
+*   **Text:** Sentence with cloze deletions (e.g., `The capital of France is {{c1::Paris}}.`)
+*   **Extra:** Contextual rules or grammar explanations.
 
-## 3. MCP Integration Strategy
-Wisdom will expose an **MCP Server** that allows agents (Gemini, Claude) to:
-1.  **Read**: `recall(query)` - Search the unified graph.
-2.  **Write**: `memorize(content)` - Ingest new facts into the specific user's namespace.
-3.  **Learn**: `plan_learning(topic)` - Trigger the `LearningEngine` to output a structured path.
-
-## 4. TTL (Time-To-Live) Strategy for Signals
-To prevent "Graph Rot," non-immutable nodes (Signals) implement TTL:
-- **Low Impact**: 7 days.
-- **Medium Impact**: 30 days.
-- **High Impact / Fact**: Permanent.
-- **Auto-Renewal**: Every time a node is successfully recalled or upvoted, its TTL is reset.
+## The Generation Pipeline
+1. `Thalamus` receives a user request.
+2. `Expert Agent` formulates the knowledge.
+3. `Expert Agent` calls the MCP Server (`obsidian-mcp` or `anki-mcp`) passing the strictly formatted JSON/Markdown payloads.
+4. The user sees the files magically appear perfectly formatted in their native applications.

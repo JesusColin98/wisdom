@@ -2,62 +2,60 @@ package main
 
 import (
 	"log"
+	"net"
 	"os"
-	"strings"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/google/wisdom/pkg/researcher"
+	pb "github.com/google/wisdom/pkg/researcher/v1"
 )
 
+// Wisdom-Researcher: autonomous content gathering gRPC service.
+// Migrated from NATS to GCP Pub/Sub (architecture decision locked 2026-05-14).
+// Publishes wisdom.knowledge.ingested events to Pub/Sub on job completion.
 func main() {
-	// The Researcher can be run as a Job (e.g., Cloud Run Job) taking URLs from environment
-	// variables or a message queue. For simplicity, we accept a TARGET_URLS env var.
-	targetURLsStr := os.Getenv("TARGET_URLS")
-	if targetURLsStr == "" {
-		log.Fatal("TARGET_URLS environment variable is required (comma-separated)")
-	}
-	urls := strings.Split(targetURLsStr, ",")
-
-	natsURL := os.Getenv("NATS_URL")
-	if natsURL == "" {
-		natsURL = "nats://localhost:4222"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "50054"
 	}
 
-	publisher, err := researcher.NewPublisher(natsURL)
+	// GCS bucket for raw content storage (PDFs, audio, large HTML).
+	// Files are auto-deleted after 24h or upon extraction success (TTL-restricted bucket).
+	gcsBucket := os.Getenv("GCS_INGESTION_BUCKET")
+	if gcsBucket == "" {
+		log.Fatal("FATAL: GCS_INGESTION_BUCKET environment variable is required")
+	}
+
+	// GCP project — for Pub/Sub publishing.
+	gcpProject := os.Getenv("GCP_PROJECT_ID")
+	if gcpProject == "" {
+		log.Fatal("FATAL: GCP_PROJECT_ID environment variable is required")
+	}
+
+	// Initialize Researcher service with Pub/Sub publisher.
+	researcherServer, err := researcher.NewServer(gcsBucket, gcpProject)
 	if err != nil {
-		log.Fatalf("Failed to initialize NATS publisher: %v", err)
+		log.Fatalf("Failed to initialize Researcher server: %v", err)
 	}
-	defer publisher.Close()
 
-	scraper := researcher.NewScraper()
+	// Spin up gRPC server.
+	grpcServer := grpc.NewServer()
+	pb.RegisterResearcherServer(grpcServer, researcherServer)
 
-	for _, url := range urls {
-		url = strings.TrimSpace(url)
-		if url == "" {
-			continue
-		}
+	healthSrv := health.NewServer()
+	healthSrv.SetServingStatus("wisdom.researcher.v1.Researcher", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthSrv)
 
-		log.Printf("Scraping %s...", url)
-		markdown, err := scraper.ScrapeURL(url)
-		if err != nil {
-			log.Printf("Error scraping %s: %v", url, err)
-			continue
-		}
-
-		// Prepare the data
-		data := researcher.IngestedData{
-			Title:           "Auto-scraped Content", // In a real app, parse the <title> tag
-			MarkdownContent: markdown,
-			SourceURL:       url,
-			SuggestedTags:   []string{"auto-ingest"}, // Real app: basic keyword extraction
-		}
-
-		// Publish to NATS
-		if err := publisher.PublishIngestedEvent(data); err != nil {
-			log.Printf("Failed to publish event for %s: %v", url, err)
-		} else {
-			log.Printf("Successfully published CloudEvent for %s", url)
-		}
+	listener, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		log.Fatalf("Failed to listen on port %s: %v", port, err)
 	}
-	
-	log.Println("Research job completed successfully.")
+
+	log.Printf("Wisdom-Researcher gRPC service listening on port %s", port)
+	if err := grpcServer.Serve(listener); err != nil {
+		log.Fatalf("Failed to serve gRPC: %v", err)
+	}
 }

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package wisdom.entity.v1;
+
+option go_package = "github.com/google/wisdom/pkg/entity/v1;entityv1";
+
+// Wisdom-Entity-Dictionary: ontology service for entity resolution and tagging.
+// Identifies and contextualizes the "Who", "What", and "How" in the knowledge graph.
+service EntityDictionary {
+  // Resolve a symbolic reference (@Person, #Topic) to a full entity profile.
+  rpc ResolveEntity(EntityRequest) returns (EntityProfile);
+  // Scan a piece of content and tag all entities within it.
+  rpc TagContent(ContentRequest) returns (TaggedContent);
+  // Register a new entity in the dictionary.
+  rpc RegisterEntity(RegisterRequest) returns (EntityProfile);
+  // Find relationships between two entities.
+  rpc GetRelationship(RelationshipRequest) returns (RelationshipList);
+}
+
+enum EntityScope {
+  PRIVATE = 0; // Only visible to the owner user
+  GLOBAL  = 1; // Shared across all users
+}
+
+message EntityRequest {
+  string symbol_text = 1; // e.g., "@ElonMusk" or "#LLM"
+  string user_id     = 2;
+  EntityScope scope  = 3;
+}
+
+message Attribute {
+  string key   = 1; // e.g., "profession"
+  string value = 2; // e.g., "Engineer"
+}
+
+message EntityProfile {
+  string id              = 1;
+  string symbol          = 2; // e.g., "@ElonMusk"
+  string entity_type     = 3; // "PERSON", "ORGANIZATION", "TOPIC", "CONCEPT"
+  string canonical_name  = 4;
+  repeated Attribute attributes = 5;
+  EntityScope scope      = 6;
+  // RESOLUTION_REQUIRED: set when the symbol is ambiguous (e.g., @Jesus = multiple users)
+  bool requires_resolution = 7;
+}
+
+message ContentRequest {
+  string content  = 1; // Raw Markdown text to scan
+  string user_id  = 2;
+  string context  = 3; // "NOTE", "CHAT", "SIGNAL"
+}
+
+message Tag {
+  string symbol      = 1; // The matched symbol (@, #, [[]])
+  string entity_id   = 2; // Resolved entity ID
+  string entity_type = 3;
+  int32  start_pos   = 4; // Character offset in original content
+  int32  end_pos     = 5;
+}
+
+message TaggedContent {
+  string original_content  = 1;
+  repeated Tag tags        = 2;
+}
+
+message RegisterRequest {
+  string symbol         = 1;
+  string entity_type    = 2;
+  string canonical_name = 3;
+  repeated Attribute attributes = 4;
+  string user_id        = 5;
+  EntityScope scope     = 6;
+}
+
+message RelationshipRequest {
+  string from_entity_id = 1;
+  string to_entity_id   = 2;
+}
+
+message Relationship {
+  string from_entity_id = 1;
+  string to_entity_id   = 2;
+  string relation_type  = 3; // "WORKS_AT", "MASTERED_BY", "PART_OF", "CONTRADICTS"
+  double confidence     = 4;
+}
+
+message RelationshipList {
+  repeated Relationship relationships = 1;
+}

@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package wisdom.researcher.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/google/wisdom/pkg/researcher/v1;researcherv1";
+
+// Wisdom-Researcher: autonomous content gathering microservice.
+// Publishes KNOWLEDGE.ingested events to GCP Pub/Sub on completion.
+service Researcher {
+  // Trigger an investigation on a topic. Returns a stream of Markdown signals.
+  rpc Investigate(InvestigateRequest) returns (stream ResearchSignal);
+  // Add a URL or RSS feed to the autonomous crawler subscription list.
+  rpc SubscribeFeed(FeedRequest) returns (FeedAck);
+  // Ingest a local PDF or book from a DDL source (Anna's Archive, local path).
+  rpc IngestBook(BookRequest) returns (BookAck);
+  // Get the status of a running research job.
+  rpc GetJobStatus(JobStatusRequest) returns (JobStatus);
+}
+
+message InvestigateRequest {
+  string topic    = 1; // e.g., "Caro-Kann Defense" or "React Server Components"
+  string domain   = 2; // "chess", "technology", "finance", "language"
+  int32  depth    = 3; // 1=surface, 3=deep (more sources)
+  string user_id  = 4;
+}
+
+message ResearchSignal {
+  string job_id    = 1;
+  string source    = 2; // URL or file path
+  string content   = 3; // Raw Markdown/text chunk
+  string node_type = 4; // "Fact", "Signal", "Concept"
+  repeated string tags = 5;
+  google.protobuf.Timestamp scraped_at = 6;
+}
+
+message FeedRequest {
+  string url    = 1; // RSS/Atom feed URL
+  string domain = 2; // Topic domain for classification
+  string user_id = 3;
+}
+
+message FeedAck {
+  string feed_id = 1;
+  bool   success = 2;
+}
+
+message BookRequest {
+  string source_uri = 1; // Local path, GCS URI, or DDL URL
+  string domain     = 2;
+  string user_id    = 3;
+}
+
+message BookAck {
+  string job_id  = 1;
+  bool   queued  = 2;
+}
+
+message JobStatusRequest {
+  string job_id = 1;
+}
+
+message JobStatus {
+  string job_id        = 1;
+  string status        = 2; // "QUEUED", "CRAWLING", "PROCESSING", "DONE", "ERROR"
+  int32  progress_pct  = 3;
+  int32  eta_seconds   = 4;
+  string error_message = 5;
+  google.protobuf.Timestamp started_at  = 6;
+  google.protobuf.Timestamp finished_at = 7;
+}

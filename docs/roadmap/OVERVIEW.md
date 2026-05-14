@@ -1,47 +1,30 @@
-# Wisdom Microservices Evolution: The Cognitive Runtime
+# Wisdom Cognitive Runtime: Master Overview
 
-Wisdom is evolving from a monolithic memory graph into a distributed **Cognitive Runtime**. This architecture ensures that deterministic data retrieval, structured learning, and personalized memory are handled by specialized, decoupled services.
+## The Hybrid Mastery Philosophy
+Wisdom has evolved from a monolithic backend into a distributed **Cognitive Runtime**. The core philosophy is **Hybrid Mastery**: preserving our unique, proprietary backend intelligence (Go microservices for factual storage, mastery tracking, and autonomous research) while seamlessly integrating with established, validated UI ecosystems via the **Model Context Protocol (MCP)** and **Vertex AI Agent Platform Memory Bank**.
 
-## Core Vision: Everything is a Service
-We transition from internal Go packages to independent services communicating via **gRPC** as the mandatory internal transport layer for maximum performance and low-latency neural loops.
+## The 5-Layer Architecture
 
-### Protocol Standards
-- **Internal**: **gRPC (Protobuf)**. Chosen for speed, binary efficiency, and strong typing.
-- **External**: **REST / MCP (Model Context Protocol)**. For interoperability with other AI agents and web clients.
+### Layer 1: The Glass (UX & Observability)
+We do not reinvent the wheel for knowledge management or flashcards.
+*   **Obsidian & Logseq (via MCP):** The primary interfaces for browsing the Knowledge Graph. Wisdom generates 100% compliant local Markdown files.
+*   **Anki (via MCP):** The optional, validated UI for Spaced Repetition (SRS).
+*   **Wisdom Portal (React):** Our "Mission Control". Used exclusively for system observability (checking Researcher scraping status, microservice health) and as an alternative, proprietary Wisdom Study UI.
 
-### 1. Subsystem: `Wisdom-Researcher` (Deterministic Investigation)
-Deterministic engine for factual data gathering.
-- **Responsibility**: Scrape, search, and download raw knowledge without LLM bias.
-- **Sub-modules**:
-  - `Book-Vault`: Integration with Anna's Archive/Z-Lib (DDL) for deep-dive PDFs.
-  - `Blog-Crawler`: RSS/Atom crawler for specialized community knowledge.
-  - `News-Stream`: Real-time monitoring of current events/trends.
-- **Output**: Cleaned, tagged Markdown with Obsidian-style metadata.
+### Layer 2: Orchestration (The Router)
+*   **Thalamus (ADK Gateway):** Built using the Agent Development Kit (ADK). This layer receives the user's prompt (e.g., "Analyze my chess game" or "What's the status of my Fibras?"), manages the session (`CreateSession`), and routes the request to the correct Domain Expert.
 
-### 2. Subsystem: `Wisdom-Curriculum` (Learning Path Orchestrator)
-The "Teacher" that organizes information into logical hierarchies.
-- **Responsibility**: Map "Big Topics" (Science, Philo, Chess) into "Sub-topics" and "Atomic Concepts."
-- **Logic**: Implements a standard taxonomy while allowing dynamic expansion via discovery.
-- **Levels**: Defines Beginner, Intermediate, and Advanced tiers for every concept.
+### Layer 3: Mix of Experts (MoE)
+*   Highly decoupled, specialized AI agents handling specific domains.
+*   Current Experts: **Finance (Fibras)**, **Chess**, **Language Learning**, **Technology**.
+*   Each expert possesses unique prompts, logic, and tools, ensuring high-quality, domain-specific outputs without cross-domain hallucinations.
 
-### 3. Subsystem: `Wisdom-Trace` (Personalized Mastery)
-The user-centric tracker.
-- **Responsibility**: Map the Knowledge Graph specifically to a `user_id`.
-- **Metrics**: Tracks `MasteryScore`, `Fragility` (forgetting curve), and `StruggleDensity`.
-- **Personalization**: Injects user-specific "weakness nodes" into any learning path generated.
+### Layer 4: Cognitive Memory (Vertex AI Memory Bank)
+*   The LLM's long-term memory. Instead of storing raw chat logs, it uses **Reflective Memory Management**.
+*   **Scoped Retrieval:** The Memory Bank guarantees isolation. The Chess Expert only retrieves memories with `scope: "Chess_Expert"`.
+*   **Consolidation:** Uses `GenerateMemories` to asynchronously extract "Facts" (e.g., "User struggles with Spanish subjunctive") and overwrite outdated facts, preventing context window bloat.
 
-### 4. Subsystem: `Wisdom-Entity-Dictionary` (The Ontology)
-The "Cerebro" sub-module for recognition.
-- **Responsibility**: Recognize People (@), Tags (#), and Systems. Maintain attributes (e.g., @Jesus: Role=SRE, Level=Expert).
-- **Standards**: Uses standard Markdown symbols for entity mapping during ingestion.
-
-### 5. Subsystem: `Cortex-Substrate` (Memory as a Service)
-The storage and retrieval backbone.
-- **Responsibility**: Unified access to facts (SQL), relationships (Graph), and semantics (Vector).
-- **Interface**: Decoupled "Introducer" (Writer) and "Extractor" (Reader) services.
-- **Abstraction**: High-level API to query "Hechos" (Immutable truths) vs "Signals" (Changeable info).
-
-## Next Steps for Debate
-1.  **Transport Protocol**: Standardized on **gRPC** for request/response and **NATS JetStream** for events.
-2.  **Entity Standards**: Finalize symbols: `@` for people, `#` for topics, `[[ ]]` for internal links, `!` for high-confidence facts.
-3.  **Database Strategy**: **Google Cloud Spanner** for global consistency (The 'Enciclopedia') and **GCS** for large resource blobs (The 'Vault').
+### Layer 5: Factual Substrate (Go Microservices)
+*   **Cortex:** Immutable data, massive graph relationships, and SQL storage for things that exceed the LLM context window.
+*   **Researcher:** Autonomous crawler/scraper for content creation.
+*   **Trace & Metabolism:** The proprietary Mastery engines that calculate the user's learning curve, acting as the ultimate source of truth, even if the user studies in Anki.

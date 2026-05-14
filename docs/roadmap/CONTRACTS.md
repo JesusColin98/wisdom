@@ -1,44 +1,25 @@
-# Ecosystem Contracts: Protobuf & CloudEvents
+# Contracts & Communication Boundaries
 
-To allow independent teams (or agents) to build components in parallel, all inter-service communication MUST adhere to these locked contracts.
+Wisdom's architecture relies on strict separation of concerns and a standardized data flow.
 
-## 1. Asynchronous Events (NATS JetStream)
-We use the [CloudEvents](https://cloudevents.io/) specification for all NATS messages.
+## 1. Authoritative Data Flow (Gap R3 Fix)
+To prevent integration spaghetti, all creation and review cycles follow this single authoritative sequence:
 
-### Subject: `wisdom.knowledge.ingested`
-Fired by `Researcher` when new data is acquired. `Cortex` and `Cerebellum` listen to this.
-```json
-{
-  "specversion": "1.0",
-  "type": "wisdom.knowledge.ingested",
-  "source": "/researcher/blog-crawler",
-  "id": "A234-1234-1234",
-  "time": "2026-05-12T00:00:00Z",
-  "datacontenttype": "application/json",
-  "data": {
-    "title": "New Chess Strategies",
-    "markdown_content": "# Intro\n...",
-    "source_url": "https://example.com/chess",
-    "suggested_tags": ["#chess", "#strategy"]
-  }
-}
-```
+### Knowledge Creation Path
+`Expert Agent` -> `Integrations Service` -> `MCP Server (Obsidian/Anki/Logseq)`
 
-### Subject: `wisdom.memory.conflict_detected`
-Fired by `Cerebellum` when a contradiction is found. Frontend/Portal listens to prompt the user.
-```json
-{
-  "specversion": "1.0",
-  "type": "wisdom.memory.conflict_detected",
-  "source": "/cerebellum/integrity-checker",
-  "data": {
-    "winning_node_id": "uuid-1",
-    "losing_node_id": "uuid-2",
-    "confidence_delta": 0.6
-  }
-}
-```
+### Mastery Feedback Path
+`Anki Desktop` -> `AnkiConnect` -> `MCP Server` -> `Integrations Service (Polling)` -> `Trace Service` -> `Cortex DB`
 
-## 2. Synchronous APIs (gRPC)
-*(See individual SERVICE_*.md files for specific rpc definitions)*.
-All gRPC services MUST implement the standard Health checking protocol: `grpc.health.v1.Health`.
+## 2. Internal Communication: gRPC & Pub/Sub
+*   **Synchronous:** Internal microservices communicate via **gRPC (Protobuf)** with mTLS (e.g., Thalamus to Cortex).
+*   **Asynchronous:** We use **GCP Pub/Sub** for event-driven messaging (e.g., triggering a background scrape job in Researcher, or broadcasting a memory consolidation event). This perfectly aligns with Cloud Run.
+
+## 3. External & UX Communication: MCP
+Interactions with the user's local tools (Obsidian, Anki) are mediated by **MCP**. 
+
+## 4. Observability Communication: WebSockets
+The `portal/` receives real-time system events (originating from Pub/Sub topics) via WebSockets routed through Thalamus, as defined in `PORTAL_SPEC.md`.
+
+## 5. Cognitive Memory: Vertex AI API
+Communication with the Memory Bank uses the ADK, scoped by `user_id` and `agent_name`.
