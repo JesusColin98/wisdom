@@ -141,9 +141,9 @@ func (s *Server) GetJobStatus(ctx context.Context, req *pb.JobStatusRequest) (*p
 	}
 	// TODO: Query Cortex for job metadata node.
 	return &pb.JobStatus{
-		JobId:    req.JobId,
-		Status:   "UNKNOWN",
-		Progress: 0,
+		JobId:       req.JobId,
+		Status:      "UNKNOWN",
+		ProgressPct: 0,
 	}, nil
 }
 
