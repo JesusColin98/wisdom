@@ -255,6 +255,15 @@ steps:
     waitFor:
       - build-chat-service
 
+  - id: push-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-api
+    waitFor:
+      - build-api
+
   # ─── Phase 6: Deploy to Cloud Run (dependency order) ─────────────────────
   # Cortex first — all other services depend on it.
   - id: deploy-cortex
@@ -481,7 +490,7 @@ steps:
           --allow-unauthenticated \
           --set-secrets "DB_CONN_STRING=CORTEX_DB_CONN:latest"
     waitFor:
-      - build-api
+      - push-api
       - deploy-thalamus
 
   # ─── Deploy Portal (public frontend — last, needs chat_service URL) ────────
