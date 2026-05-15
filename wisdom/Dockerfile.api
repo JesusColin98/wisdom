@@ -2,24 +2,12 @@ FROM golang:1.26.3-bookworm AS builder
 
 WORKDIR /app
 
-# Install protoc to compile protobufs
-RUN apt-get update && apt-get install -y protobuf-compiler
-
 # Copy go.mod and go.sum
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Install protoc plugins
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
 # Copy the source code
 COPY . .
-
-# Remove stubs and compile proto
-RUN rm -f pkg/cortex/v1/stubs.go || true
-RUN export PATH="$PATH:$(go env GOPATH)/bin" && \
-    protoc --go_out=. --go_opt=module=github.com/google/wisdom --go-grpc_out=. --go-grpc_opt=module=github.com/google/wisdom proto/cortex.proto
 
 # Build the Go app
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api-server ./cmd/wisdom-api/main.go
