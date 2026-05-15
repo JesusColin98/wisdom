@@ -88,6 +88,18 @@ class PubSubMessage(BaseModel):
     subscription: str
 
 
+class ExpertConfigRequest(BaseModel):
+    """Configuration for a new dynamic domain expert."""
+    id: str
+    agent: str | None = None
+    description: str
+    system_instruction: str | None = None
+    keywords: list[str] = []
+    memory_topics: list[str] = []
+    anki_deck_prefix: str | None = None
+    obsidian_folder: str | None = None
+
+
 # ─── Routes ───────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -196,11 +208,61 @@ async def pubsub_voice_input(req: Request):
 
 @app.get("/domains")
 async def list_domains():
-    """Return the active domain configuration (for Portal routing visualization)."""
-    import json
-    from pathlib import Path
-    domains = json.loads((Path(__file__).parent / "domains.json").read_text())
-    return domains
+    """Return the active domain configuration (including dynamic ones)."""
+    if not router:
+        # Fallback if router not initialized
+        from pathlib import Path
+        import json
+        return json.loads((Path(__file__).parent / "domains.json").read_text())
+    
+    return {"domains": router._domains}
+
+
+@app.post("/api/v1/experts")
+async def register_expert(config: ExpertConfigRequest):
+    """
+    Register a new dynamic domain expert.
+    Persists the config in Cortex and reloads the router.
+    """
+    if not router:
+        raise HTTPException(status_code=503, detail="Router not initialized")
+
+    try:
+        # Ensure ID is uppercase
+        config.id = config.id.upper()
+        
+        # Default values if missing
+        if not config.agent:
+            config.agent = f"{config.id.capitalize()}Expert"
+        if not config.anki_deck_prefix:
+            config.anki_deck_prefix = f"Wisdom::{config.id.capitalize()}"
+        if not config.obsidian_folder:
+            config.obsidian_folder = f"{config.id.capitalize()}/"
+        if not config.memory_topics:
+            config.memory_topics = [f"{config.id}_INSIGHTS"]
+
+        # 1. Store in Cortex as a DomainConfig node
+        # We use node_type='DomainConfig' which our router looks for
+        from grpc_clients import get_cortex_client
+        cortex = get_cortex_client()
+        
+        cortex.memorize(
+            node_type="DomainConfig",
+            payload=config.dict(),
+            confidence=1.0
+        )
+
+        # 2. Trigger router reload
+        router.load_domains()
+
+        return {
+            "status": "success",
+            "message": f"Expert '{config.id}' registered and router reloaded",
+            "domain": config.id
+        }
+    except Exception as e:
+        logger.exception("Failed to register expert", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Registration failed: {e}")
 
 
 @app.post("/session/{session_id}/generate-memories")

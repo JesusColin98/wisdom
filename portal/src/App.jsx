@@ -28,6 +28,7 @@ import MissionControlView from './components/MissionControlView';
 import ResearcherView from './components/ResearcherView';
 import StagingAreaView from './components/StagingAreaView';
 import StudyView from './components/StudyView';
+import ExpertRegistry from './components/ExpertRegistry';
 
 function AppContent() {
   const { 
@@ -98,6 +99,7 @@ function AppContent() {
           <div className="px-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3 mt-5">Observability</div>
           {[
             { id: 'MISSION', label: 'Mission Control', icon: <MonitorDot size={18} /> },
+            { id: 'EXPERTS', label: 'Expert Registry', icon: <Sparkles size={18} /> },
             { id: 'RESEARCHER', label: 'Researcher', icon: <Rss size={18} /> },
             { id: 'STAGING', label: 'Staging Area', icon: <CloudOff size={18} /> },
           ].map(item => (
@@ -320,6 +322,11 @@ function AppContent() {
         {view === 'STAGING' && (
           <div className="h-full overflow-hidden">
             <StagingAreaView />
+          </div>
+        )}
+        {view === 'EXPERTS' && (
+          <div className="h-full overflow-hidden">
+            <ExpertRegistry />
           </div>
         )}
       </div>
