@@ -3,6 +3,18 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
+# Build arguments for environment variables
+ARG VITE_ENGINE_URL
+ARG VITE_AGENT_URL
+ARG VITE_ENGINE_WS_URL
+ARG VITE_AGENT_WS_URL
+
+# Environment variables for build time (Vite bakes these into the bundle)
+ENV VITE_ENGINE_URL=$VITE_ENGINE_URL
+ENV VITE_AGENT_URL=$VITE_AGENT_URL
+ENV VITE_ENGINE_WS_URL=$VITE_ENGINE_WS_URL
+ENV VITE_AGENT_WS_URL=$VITE_AGENT_WS_URL
+
 # Install dependencies first (layer cache)
 COPY package.json package-lock.json ./
 RUN npm ci --prefer-offline

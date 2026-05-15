@@ -1,81 +1,52 @@
+steps:
+  # 1. Build the Portal container with build arguments
+  - id: build-portal
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '.'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:${_SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:latest'
+      - '--build-arg'
+      - 'VITE_ENGINE_URL=${_ENGINE_URL}'
+      - '--build-arg'
+      - 'VITE_AGENT_URL=${_AGENT_URL}'
+      - '--build-arg'
+      - 'VITE_ENGINE_WS_URL=${_ENGINE_WS_URL}'
+      - '--build-arg'
+      - 'VITE_AGENT_WS_URL=${_AGENT_WS_URL}'
+
+  # 2. Push the Portal container to Artifact Registry
+  - id: push-portal
+    name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal'
+
+  # 3. Deploy the Portal to Cloud Run
+  - id: deploy-portal
+    name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'wisdom-portal'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:${_SHORT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
 substitutions:
   _REGION: us-central1
   _REPO: wisdom-repo
-  # These are injected by the root pipeline's deploy-portal step
-  _ENGINE_URL: http://localhost:8080
-  _AGENT_URL: http://localhost:8081
-  _ENGINE_WS_URL: ws://localhost:8080
-  _AGENT_WS_URL: ws://localhost:8081
-
-steps:
-  # ─── Install dependencies ───────────────────────────────────────────────────
-  - id: npm-install
-    name: node:20-slim
-    entrypoint: npm
-    args: [ci, --prefer-offline]
-    dir: .
-
-  # ─── Build static bundle (VITE vars baked at build time) ────────────────────
-  - id: npm-build
-    name: node:20-slim
-    entrypoint: npm
-    args: [run, build]
-    dir: .
-    env:
-      - VITE_ENGINE_URL=${_ENGINE_URL}
-      - VITE_AGENT_URL=${_AGENT_URL}
-      - VITE_ENGINE_WS_URL=${_ENGINE_WS_URL}
-      - VITE_AGENT_WS_URL=${_AGENT_WS_URL}
-    waitFor:
-      - npm-install
-
-  # ─── Build Nginx container with dist/ baked in ──────────────────────────────
-  - id: build-portal
-    name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:latest
-      - .
-    waitFor:
-      - npm-build
-
-  # ─── Push ───────────────────────────────────────────────────────────────────
-  - id: push-portal
-    name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal
-    waitFor:
-      - build-portal
-
-  # ─── Deploy to Cloud Run (public — user-facing frontend) ────────────────────
-  - id: deploy-portal
-    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-    entrypoint: gcloud
-    args:
-      - run
-      - deploy
-      - wisdom-portal
-      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
-      - --region=${_REGION}
-      - --platform=managed
-      - --allow-unauthenticated
-      - --concurrency=80
-      - --min-instances=0
-      - --max-instances=3
-      - --port=80
-    waitFor:
-      - push-portal
-
-images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
+  _SHORT_SHA: latest
+  _ENGINE_URL: ''
+  _AGENT_URL: ''
+  _ENGINE_WS_URL: ''
+  _AGENT_WS_URL: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  substitutionOption: ALLOW_LOOSE
-
-timeout: 900s

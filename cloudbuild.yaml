@@ -500,7 +500,7 @@ steps:
         # Rebuild portal image with live URLs baked into the bundle
         gcloud builds submit ./portal \
           --config=portal/cloudbuild.yaml \
-          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_ENGINE_URL=$$CORTEX_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
+          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_SHORT_SHA=$SHORT_SHA,_ENGINE_URL=$$CORTEX_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
     waitFor:
       - deploy-chat-service
       - deploy-thalamus
