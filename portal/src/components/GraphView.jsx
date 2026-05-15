@@ -24,7 +24,6 @@ const GraphView = ({ namespace, onEditNode }) => {
 
   const fetchGraphData = useCallback(async () => {
     setInternalLoading(true);
-    setLoading(true);
     setError(null);
     try {
       const [nodesRes, edgesRes] = await Promise.all([
@@ -67,9 +66,8 @@ const GraphView = ({ namespace, onEditNode }) => {
       setError(error.message);
     } finally {
       setInternalLoading(false);
-      setLoading(false);
     }
-  }, [namespace, API_BASE, setLoading, setError]);
+  }, [namespace, API_BASE, setError]);
 
   useEffect(() => {
     let mounted = true;

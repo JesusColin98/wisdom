@@ -16,7 +16,7 @@ func main() {
 		port = "8080"
 	}
 
-	connStr := os.Getenv("DB_CONN_STRING")
+	connStr := strings.TrimSpace(os.Getenv("DB_CONN_STRING"))
 	if connStr == "" {
 		log.Fatal("DB_CONN_STRING environment variable is required")
 	}
@@ -135,6 +135,28 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(edges)
 	})
+
+	// Static file serving for the Portal
+	fs := http.FileServer(http.Dir("./public"))
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If it's an API route that wasn't matched, it will fall through here
+		// We should only serve static files for non-API routes or if the file exists
+		if strings.HasPrefix(r.URL.Path, "/cortex") || strings.HasPrefix(r.URL.Path, "/whoami") || strings.HasPrefix(r.URL.Path, "/health") {
+			http.NotFound(w, r)
+			return
+		}
+
+		// Check if file exists in public
+		path := "./public" + r.URL.Path
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) || r.URL.Path == "/" {
+			// Serve index.html for SPA routing
+			http.ServeFile(w, r, "./public/index.html")
+			return
+		}
+
+		fs.ServeHTTP(w, r)
+	}))
 
 	log.Printf("Wisdom REST API listening on port %s", port)
 	if err := http.ListenAndServe(":"+port, corsMiddleware(mux)); err != nil {
