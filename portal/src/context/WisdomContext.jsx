@@ -2,13 +2,17 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 
 const WisdomContext = createContext();
 
+// Google OAuth 2.0 Configuration
+const GOOGLE_CLIENT_ID = "384412501694-q5h6p4r8764ilng1i2l4s6q8m2lic3e0.apps.googleusercontent.com";
+const AUTH_SCOPE = "openid email profile";
+
 export const WisdomProvider = ({ children }) => {
   const [view, setView] = useState('GRAPH');
   const [rigor, setRigor] = useState('LOW');
   const [activeNamespace, setActiveNamespace] = useState('ns-engineering');
   const [namespaces, setNamespaces] = useState([]);
-  const [user, setUser] = useState({ ldap: 'anonymous', role: 'USER', is_admin: false });
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null); // Initialize as null to trigger login check
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastEvent, setLastEvent] = useState(null);
 
@@ -19,28 +23,69 @@ export const WisdomProvider = ({ children }) => {
   
   const socketRef = useRef(null);
 
-  const fetchUser = useCallback(async () => {
+  const redirectToLogin = useCallback(() => {
+    const redirectUri = window.location.origin;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(AUTH_SCOPE)}&prompt=consent`;
+    window.location.href = authUrl;
+  }, []);
+
+  const fetchUser = useCallback(async (token) => {
     try {
-      const resp = await fetch(`${API_BASE}/whoami`);
+      setLoading(true);
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const resp = await fetch(`${API_BASE}/whoami`, { headers });
+      
       if (resp.ok) {
         const data = await resp.json();
-        // Grant admin status if LDAP is jesuscolin
         const enrichedUser = {
             ...data,
             is_admin: data.ldap === 'jesuscolin' || data.is_admin,
-            role: data.ldap === 'jesuscolin' ? 'ADMIN' : (data.role || 'USER')
+            role: data.ldap === 'jesuscolin' ? 'ADMIN' : (data.role || 'USER'),
+            token: token
         };
         setUser(enrichedUser);
+        setLoading(false);
+        return true;
+      } else if (resp.status === 401) {
+        console.warn("Unauthorized, clearing token");
+        localStorage.removeItem('wisdom_token');
+        return false;
       }
     } catch (err) {
       console.error("Failed to fetch user:", err);
     }
+    setLoading(false);
+    return false;
   }, [API_BASE]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchUser();
-    }, 0);
+    const initializeAuth = async () => {
+      // 1. Check for token in URL (OAuth callback)
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.substring(1));
+      let token = params.get('access_token');
+
+      if (token) {
+        console.log("Captured token from URL");
+        localStorage.setItem('wisdom_token', token);
+        // Clear hash from URL
+        window.history.replaceState(null, null, window.location.pathname);
+      } else {
+        // 2. Check for token in localStorage
+        token = localStorage.getItem('wisdom_token');
+      }
+
+      if (token) {
+        const success = await fetchUser(token);
+        if (!success) {
+          redirectToLogin();
+        }
+      } else {
+        redirectToLogin();
+      }
+    };
+
+    initializeAuth();
 
     // Shared WebSocket
     const socket = new WebSocket(`${WS_BASE}/ws`);
@@ -71,12 +116,17 @@ export const WisdomProvider = ({ children }) => {
     socketRef.current = socket;
 
     return () => {
-      clearTimeout(timer);
       if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         socket.close();
       }
     };
-  }, [WS_BASE, fetchUser]);
+  }, [WS_BASE, fetchUser, redirectToLogin]);
+
+  const logout = () => {
+    localStorage.removeItem('wisdom_token');
+    setUser(null);
+    window.location.reload();
+  };
 
   const sendWS = useCallback((type, payload) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -86,6 +136,10 @@ export const WisdomProvider = ({ children }) => {
     console.warn("WebSocket not open. ReadyState:", socketRef.current?.readyState);
     return false;
   }, []);
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0a0a0a', color: '#fff' }}>Loading Wisdom...</div>;
+  }
 
   return (
     <WisdomContext.Provider value={{
@@ -102,7 +156,8 @@ export const WisdomProvider = ({ children }) => {
       AGENT_WS,
       lastEvent,
       socketRef,
-      sendWS
+      sendWS,
+      logout
     }}>
       {children}
     </WisdomContext.Provider>
