@@ -21,11 +21,17 @@ __pycache__/
 venv/
 env/
 
-# --- Node / Frontend (portal) ---
+# --- Node / Frontend (portal & mcp-servers) ---
+node_modules/
+dist/
 portal/node_modules/
 portal/dist/
 portal/.eslintcache
 portal/.env
+mcp-servers/*/node_modules/
+mcp-servers/*/dist/
+mcp-servers/*/.env
+.env
 
 # --- Go (wisdom) ---
 # Specific binaries found
