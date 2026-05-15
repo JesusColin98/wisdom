@@ -456,7 +456,7 @@ steps:
           --concurrency=80 \
           --min-instances=0 \
           --max-instances=5 \
-          --set-env-vars "WISDOM_ENGINE_URL=$$CORTEX_URL,PORT=8080" \
+          --set-env-vars "WISDOM_ENGINE_URL=$$CORTEX_URL" \
           --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest"
     waitFor:
       - push-chat-service
