@@ -138,8 +138,7 @@ steps:
     waitFor:
       - go-build-check
 
-  # ─── Phase 4: Build Python ADK Router ────────────────────────────────────
-  # Builds in parallel with Go services (no dependency on go-build-check).
+  # ─── Phase 4: Build Python Services (parallel, no Go dependency) ───────────
   - id: build-adk-router
     name: gcr.io/cloud-builders/docker
     args:
@@ -149,6 +148,38 @@ steps:
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:latest
       - ./adk-router
+
+  - id: build-chat-service
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:latest
+      - ./chat_service
+
+  # ─── Phase 4b: Build Portal (Node → Nginx image) ─────────────────────────
+  # Note: VITE env vars with live Cloud Run URLs are injected at deploy time
+  # via the deploy-portal step (build arg pattern). A placeholder build is
+  # done here; the final URL injection happens during the deploy step.
+  - id: build-portal
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:latest
+      - --build-arg
+      - VITE_ENGINE_URL=__CORTEX_URL__
+      - --build-arg
+      - VITE_AGENT_URL=__CHAT_URL__
+      - --build-arg
+      - VITE_ENGINE_WS_URL=__CORTEX_WS_URL__
+      - --build-arg
+      - VITE_AGENT_WS_URL=__CHAT_WS_URL__
+      - ./portal
 
   # ─── Phase 5: Push All Images (parallel) ─────────────────────────────────
   - id: push-cortex
@@ -222,6 +253,24 @@ steps:
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router
     waitFor:
       - build-adk-router
+
+  - id: push-chat-service
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service
+    waitFor:
+      - build-chat-service
+
+  - id: push-portal
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal
+    waitFor:
+      - build-portal
 
   # ─── Phase 6: Deploy to Cloud Run (dependency order) ─────────────────────
   # Cortex first — all other services depend on it.
@@ -390,7 +439,30 @@ steps:
       - deploy-mastery
       - deploy-integrations
 
-  # Thalamus last — public gateway, only live when backend is ready.
+  # ─── Deploy chat_service (Python/FastAPI — after Cortex is live) ──────────
+  - id: deploy-chat-service
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex \
+          --region ${_REGION} --format 'value(status.url)')
+        gcloud run deploy wisdom-chat-service \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --concurrency=80 \
+          --min-instances=0 \
+          --max-instances=5 \
+          --set-env-vars "WISDOM_ENGINE_URL=$$CORTEX_URL,PORT=8080" \
+          --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest"
+    waitFor:
+      - push-chat-service
+      - promote-cortex
+
+  # Thalamus — public gateway, only live when all backend services are ready.
   - id: deploy-thalamus
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
@@ -412,6 +484,29 @@ steps:
       - deploy-entity
       - deploy-researcher
 
+  # ─── Deploy Portal (public frontend — last, needs chat_service URL) ────────
+  - id: deploy-portal
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex \
+          --region ${_REGION} --format 'value(status.url)')
+        CHAT_URL=$(gcloud run services describe wisdom-chat-service \
+          --region ${_REGION} --format 'value(status.url)')
+        CORTEX_WSS=$(echo $$CORTEX_URL | sed 's/https:/wss:/')
+        CHAT_WSS=$(echo $$CHAT_URL | sed 's/https:/wss:/')
+        # Rebuild portal image with live URLs baked into the bundle
+        gcloud builds submit ./portal \
+          --config=portal/cloudbuild.yaml \
+          --substitutions="_REGION=${_REGION},_REPO=${_REPO},\
+_ENGINE_URL=$$CORTEX_URL,_AGENT_URL=$$CHAT_URL,\
+_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
+    waitFor:
+      - deploy-chat-service
+      - deploy-thalamus
+
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA
@@ -421,6 +516,8 @@ images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-integrations:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
