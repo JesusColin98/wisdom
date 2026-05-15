@@ -8,9 +8,7 @@ const MetabolismView = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchMetabolism = useCallback(async () => {
-    await Promise.resolve();
     setIsRefreshing(true);
-    setLoading(true);
     setError(null);
     try {
       const response = await fetch(`${API_BASE}/metabolism`);
@@ -22,9 +20,8 @@ const MetabolismView = () => {
       setError(error.message);
     } finally {
       setIsRefreshing(false);
-      setLoading(false);
     }
-  }, [API_BASE, setLoading, setError]);
+  }, [API_BASE, setError]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

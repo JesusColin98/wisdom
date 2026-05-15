@@ -9,9 +9,8 @@ COPY portal/ .
 RUN npm run build
 
 # Stage 2: Build the Backend (Wisdom Engine)
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 WORKDIR /app/wisdom
-RUN apk add --no-cache build-base sqlite
 COPY wisdom/go.mod wisdom/go.sum ./
 RUN go mod download
 COPY wisdom/ .
@@ -19,16 +18,14 @@ RUN go build -o wisdom_engine cmd/wisdom-api/main.go
 
 # Stage 3: Final Production Image
 FROM alpine:latest
-RUN apk add --no-cache sqlite-libs ca-certificates
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /root/
 
 # Copy binary
 COPY --from=backend-builder /app/wisdom/wisdom_engine .
-# Copy schema
-COPY --from=backend-builder /app/wisdom/pkg/cortex/schema.sql ./pkg/cortex/schema.sql
-# Copy schemas for dynamic loading
-COPY --from=backend-builder /app/wisdom/pkg/cerebellum/schemas ./pkg/cerebellum/schemas
+# Copy schemas
+COPY --from=backend-builder /app/wisdom/pkg/cortex/*.sql ./pkg/cortex/
 
 # Copy frontend assets to 'public' directory served by Go
 COPY --from=frontend-builder /app/portal/dist ./public
@@ -37,7 +34,6 @@ COPY --from=frontend-builder /app/portal/dist ./public
 EXPOSE 8080
 
 # Environment variables
-ENV WISDOM_PORT=8080
-ENV WISDOM_DB_PATH=wisdom.db
+ENV PORT=8080
 
 CMD ["./wisdom_engine"]

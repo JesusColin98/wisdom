@@ -12,8 +12,8 @@ export const WisdomProvider = ({ children }) => {
   const [rigor, setRigor] = useState('LOW');
   const [activeNamespace, setActiveNamespace] = useState('ns-engineering');
   const [namespaces, setNamespaces] = useState([]);
-  const [user, setUser] = useState(null); // Initialize as null to trigger login check
-  const [loading, setLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastEvent, setLastEvent] = useState(null);
 
@@ -30,7 +30,7 @@ export const WisdomProvider = ({ children }) => {
     window.location.href = authUrl;
   }, []);
 
-  const initialized = useRef(false);
+  const initRef = useRef(false);
 
   const fetchUser = useCallback(async (token) => {
     if (!token) return false;
@@ -67,19 +67,17 @@ export const WisdomProvider = ({ children }) => {
 
   // Effect 1: Authentication & Token Management
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    if (initRef.current) return;
+    initRef.current = true;
 
     const initializeAuth = async () => {
-      setLoading(true);
+      setIsInitializing(true);
       try {
-        // 1. Check for token in URL (OAuth callback)
         const hash = window.location.hash;
         const params = new URLSearchParams(hash.substring(1));
         let token = params.get('access_token');
 
         if (token) {
-          console.log("Captured token from URL");
           localStorage.setItem('wisdom_token', token);
           window.history.replaceState(null, null, window.location.pathname);
         } else {
@@ -88,25 +86,17 @@ export const WisdomProvider = ({ children }) => {
 
         if (token) {
           const success = await fetchUser(token);
-          if (success) {
-            setLoading(false);
-          } else {
-            // If failed, check if we should redirect
-            if (!localStorage.getItem('wisdom_token')) {
-              redirectToLogin();
-              // Don't set loading(false) to prevent flicker
-            } else {
-              setLoading(false); // Show the error state
-            }
+          if (!success && !localStorage.getItem('wisdom_token')) {
+            redirectToLogin();
           }
         } else {
           redirectToLogin();
-          // Don't set loading(false)
         }
       } catch (e) {
         console.error("Auth init error:", e);
         setError("System initialization failed.");
-        setLoading(false);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -115,7 +105,6 @@ export const WisdomProvider = ({ children }) => {
 
   // Effect 2: Shared WebSocket Connection
   useEffect(() => {
-    // Only connect if we have a user or are not loading
     if (!user) return;
 
     const socket = new WebSocket(`${WS_BASE}/ws`);
@@ -136,7 +125,6 @@ export const WisdomProvider = ({ children }) => {
 
     socket.onerror = (event) => {
       console.error("WebSocket error:", event);
-      // Don't set global error for WS to avoid blocking the UI
       console.warn("WebSocket connection failed");
     };
 
@@ -164,14 +152,12 @@ export const WisdomProvider = ({ children }) => {
       socketRef.current.send(JSON.stringify({ type, payload }));
       return true;
     }
-    console.warn("WebSocket not open. ReadyState:", socketRef.current?.readyState);
     return false;
   }, []);
 
-  if (loading) {
+  if (isInitializing) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-[#0d1117] text-white overflow-hidden relative">
-        {/* Animated background glows */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
         
@@ -190,7 +176,7 @@ export const WisdomProvider = ({ children }) => {
         </div>
 
         {error && (
-          <div className="absolute bottom-12 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4">
+          <div className="absolute bottom-12 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 backdrop-blur-xl">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-sm font-bold text-red-200">{error}</span>
           </div>
