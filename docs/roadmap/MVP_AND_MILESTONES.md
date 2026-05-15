@@ -7,24 +7,21 @@
 
 ## Phased Roadmap & Deliverables
 
-### Phase 1: Substrate & Security (Weeks 1-2)
-*   **Task:** Break the Go monolith into independent services. Establish gRPC mesh with mTLS + JWT implementation. Set up GCP Pub/Sub for async events.
-*   **Deliverable (DoD):** A gRPC "Ping/Echo" test between `Thalamus` and `Cortex` succeeds with mutual TLS encryption verified in logs.
+### Phase 1: Substrate & Security (DONE)
+*   **Status**: COMPLETED. Go microservices decoupled, gRPC mesh established with mTLS.
 
-### Phase 2: The MCP Bridge (Weeks 3-4)
-*   **Task:** Build `Integrations` Go microservice + Local MCP deployment.
-*   **Deliverable (DoD):** A POST request to `Integrations` results in a valid Markdown file appearing in a local folder and a flashcard appearing in Anki desktop.
+### Phase 2: The MCP Bridge (DONE)
+*   **Status**: COMPLETED. Integrations service handles Obsidian/Anki synchronization.
 
-### Phase 3: Cognitive Routing & MoE (Weeks 5-6)
-*   **Task:** Build the ADK Router (Python Microservice) + Domain Registration + Vertex Memory Bank integration.
-*   **Deliverable (DoD):** Sending the prompt "How are my dividends?" routes to `Finance_Expert` and correctly retrieves `DIVIDEND_GOALS` from Memory Bank with < 1s classification latency.
+### Phase 3: Cognitive Routing & MoE (DONE)
+*   **Status**: COMPLETED. ADK Router implemented with Gemini Flash. Baseline experts (Chess, Finance, Tech, Language) operational.
 
-### Phase 4: Mission Control Portal, Chat UI & Voice (Weeks 7-8)
-*   **Task A:** React Portal — System Health View + Google STT Integration in Thalamus.
-*   **Task B:** Chat UI (View 1) — WebSocket streaming, Agent Identity Indicator, Inline Action Cards. See `CHATBOT_UI_SPEC.md`.
-*   **Task C:** Note Editor (View 2) — YAML wizard, LIFT linter, "Polish with Gemini" diff flow, PARA destination selector. See `FRONTEND_SPEC.md`.
-*   **Task D:** Vault Health Dashboard (View 3) — Orphan notes list, LIFT metrics, D3 graph snapshot.
-*   **Deliverable (DoD):** User speaks "Define React Hooks" → Chat routes to `Tech_Expert` → Inline Action Card appears → User clicks "Save" → note appears in Obsidian `00_Inbox/`. Portal shows audio waveform and "Scraping Status".
+### Phase 4: Mission Control Portal, Chat UI & Voice (CURRENT)
+*   **Task A**: React Portal — System Health View + Google STT Integration in Thalamus.
+*   **Task B**: Chat UI — WebSocket streaming, Agent Identity Indicator, Inline Action Cards.
+*   **Task C**: Dynamic Scaling — **Expert Registry UI** allows adding new domains without code. (COMPLETED)
+*   **Task D**: Autonomous Research — Experts can trigger the `Researcher` service tool-wise. (COMPLETED)
+*   **Deliverable (DoD)**: Register a domain via UI → Ask a question → Expert uses Researcher tool to fetch context → Result saved to Obsidian.
 
 ### Phase 5: Markdown → Anki Pipeline (Weeks 9-10)
 *   **Task:** `md_to_anki` endpoint in `Integrations` service + Anki Export Review Panel (View 4) + "Convert to Anki" button in Note Editor.
