@@ -23,37 +23,31 @@ from google.cloud import pubsub_v1
 
 from config import get_settings
 from memory_bank import MemoryBank
-from experts import ChessExpert, FinanceExpert, LanguageExpert, TechExpert, BaseExpert
+from experts import ChessExpert, FinanceExpert, LanguageExpert, TechExpert, BaseExpert, DynamicExpert
+from grpc_clients import get_cortex_client
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Load domain configuration from domains.json.
+# Load baseline domain configuration from domains.json.
 _DOMAINS_PATH = Path(__file__).parent / "domains.json"
-_DOMAINS: list[dict] = json.loads(_DOMAINS_PATH.read_text())["domains"]
+_BASELINE_DOMAINS: list[dict] = json.loads(_DOMAINS_PATH.read_text())["domains"]
 
-# Keyword-to-domain index for fast pre-classification.
-_KEYWORD_INDEX: dict[str, str] = {}
-for domain in _DOMAINS:
-    for kw in domain.get("keywords", []):
-        _KEYWORD_INDEX[kw.lower()] = domain["id"]
-
-ROUTER_SYSTEM_INSTRUCTION = f"""
+def _build_router_instruction(domains_list: list[dict]) -> str:
+    domain_ids = [d["id"] for d in domains_list]
+    domain_rules = "\n".join([f"{i+4}. Use {d['id']} for: {d.get('description', '')}" for i, d in enumerate(domains_list)])
+    return f"""
 You are the Wisdom Cognitive Router — a fast, precise intent classifier.
 
 ## Your ONLY Job
 Classify user input into exactly ONE domain from this list:
-{json.dumps([d["id"] for d in _DOMAINS])}
+{json.dumps(domain_ids)}
 
 ## Classification Rules
 1. Return ONLY a JSON object: {{"domain": "DOMAIN_ID", "confidence": 0.95, "reason": "one sentence"}}
 2. Do NOT provide advice, explanations, or learning content.
 3. If you are unsure, return GENERAL.
-4. Use CHESS for any chess-related input (positions, openings, games, players).
-5. Use FINANCE for stocks, ETFs, crypto, Fibras, markets, portfolios, macro.
-6. Use LANGUAGE for vocabulary, grammar, translation, language learning.
-7. Use TECH for code, programming, algorithms, system design, databases.
-8. Use GENERAL for everything else.
+{domain_rules}
 
 ## Examples
 - "How does the Caro-Kann defend against e4?" → CHESS
@@ -63,7 +57,6 @@ Classify user input into exactly ONE domain from this list:
 - "What are the benefits of sleep?" → GENERAL
 """
 
-
 class CognitiveRouter:
     """
     The central routing hub — classifies intent and dispatches to domain experts.
@@ -72,29 +65,70 @@ class CognitiveRouter:
 
     def __init__(self) -> None:
         self.memory_bank = MemoryBank()
+        self._cortex = get_cortex_client()
         self._pubsub = pubsub_v1.PublisherClient()
         self._routing_topic = self._pubsub.topic_path(
             settings.gcp_project_id,
             settings.pubsub_routing_log_topic,
         )
+        
+        self._domains: list[dict] = []
+        self._keyword_index: dict[str, str] = {}
+        self._experts: dict[str, BaseExpert] = {}
+        self._router_agent = None
 
-        # Build the lightweight router agent (Gemini Flash).
+        self.load_domains()
+
+    def load_domains(self) -> None:
+        """Loads baseline domains, fetches dynamic domains from Cortex, and rebuilds router agents."""
+        logger.info("Loading baseline and dynamic domains...")
+        
+        self._domains = list(_BASELINE_DOMAINS)
+        
+        # Try fetching dynamic domains from Cortex
+        try:
+            dynamic_facts = self._cortex.query_facts(query="", filters={"node_type": "DomainConfig"})
+            for fact in dynamic_facts:
+                if "payload" in fact and "id" in fact["payload"]:
+                    domain_config = fact["payload"]
+                    # If not already present in baseline, add it
+                    if not any(d["id"] == domain_config["id"] for d in self._domains):
+                        self._domains.append(domain_config)
+            logger.info("Fetched %d dynamic domains from Cortex.", len(dynamic_facts))
+        except Exception as e:
+            logger.warning("Failed to fetch dynamic domains from Cortex. Proceeding with baseline. Error: %s", e)
+
+        # Rebuild Keyword Index
+        self._keyword_index = {}
+        for domain in self._domains:
+            for kw in domain.get("keywords", []):
+                self._keyword_index[kw.lower()] = domain["id"]
+
+        # Rebuild the lightweight router agent (Gemini Flash).
         self._router_agent = adk.Agent(
             name="CognitiveRouter",
             model=settings.router_model,
-            instruction=ROUTER_SYSTEM_INSTRUCTION,
+            instruction=_build_router_instruction(self._domains),
         )
 
-        # Initialize all domain experts (singleton per router instance).
-        self._experts: dict[str, BaseExpert] = {
-            "CHESS": ChessExpert(self.memory_bank),
-            "FINANCE": FinanceExpert(self.memory_bank),
-            "LANGUAGE": LanguageExpert(self.memory_bank),
-            "TECH": TechExpert(self.memory_bank),
-            "GENERAL": BaseExpert(self.memory_bank),  # Fallback general expert.
-        }
+        # Initialize domain experts.
+        self._experts = {}
+        for d in self._domains:
+            domain_id = d["id"]
+            if domain_id == "CHESS":
+                self._experts[domain_id] = ChessExpert(self.memory_bank)
+            elif domain_id == "FINANCE":
+                self._experts[domain_id] = FinanceExpert(self.memory_bank)
+            elif domain_id == "LANGUAGE":
+                self._experts[domain_id] = LanguageExpert(self.memory_bank)
+            elif domain_id == "TECH":
+                self._experts[domain_id] = TechExpert(self.memory_bank)
+            elif domain_id == "GENERAL":
+                self._experts[domain_id] = BaseExpert(self.memory_bank)
+            else:
+                self._experts[domain_id] = DynamicExpert(self.memory_bank, d)
 
-        logger.info("CognitiveRouter initialized with %d domain experts.", len(self._experts))
+        logger.info("CognitiveRouter loaded with %d domain experts.", len(self._experts))
 
     async def route(
         self,
@@ -186,8 +220,8 @@ class CognitiveRouter:
         domain_hits: dict[str, int] = {}
 
         for word in words:
-            if word in _KEYWORD_INDEX:
-                d = _KEYWORD_INDEX[word]
+            if word in self._keyword_index:
+                d = self._keyword_index[word]
                 domain_hits[d] = domain_hits.get(d, 0) + 1
 
         if not domain_hits:

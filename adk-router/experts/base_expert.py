@@ -18,6 +18,7 @@ from grpc_clients import (
     get_cortex_client,
     get_integrations_client,
     get_mastery_client,
+    get_researcher_client,
 )
 from config import get_settings
 
@@ -45,6 +46,7 @@ class BaseExpert:
         self._cortex = get_cortex_client()
         self._integrations = get_integrations_client()
         self._mastery = get_mastery_client()
+        self._researcher = get_researcher_client()
 
         # Build the ADK agent with domain-specific tools.
         self._agent = adk.Agent(
@@ -58,6 +60,7 @@ class BaseExpert:
                 self._tool_create_cloze_card,
                 self._tool_get_weaknesses,
                 self._tool_search_knowledge,
+                self._tool_research_topic,
             ],
         )
 
@@ -249,6 +252,29 @@ class BaseExpert:
             filters={"domain": self.domain_id},
         )
         return {"results": results[:10], "domain": self.domain_id}
+
+    def _tool_research_topic(self, topic: str, depth: int = 2) -> dict:
+        """
+        Trigger an autonomous background research job on a complex topic.
+        Use this when you lack sufficient knowledge to answer a question properly.
+        The Researcher service will gather context from the web and store it in Cortex.
+
+        Args:
+            topic: The specific topic or question to research.
+            depth: How deep the research should go (1-3). Default is 2.
+            
+        Returns:
+            Dict containing the status of the research job trigger.
+        """
+        result = self._researcher.investigate(
+            topic=topic,
+            domain=self.domain_id,
+            user_id=settings.default_user_id,
+            depth=depth,
+        )
+        logger.info(f"{self.agent_name}: Triggered research on '{topic}' (status={result.get('status')})")
+        return {"status": "research_job_started", "topic": topic, "result": result}
+
 
     # ─── Main Process Method ──────────────────────────────────────────────────
 

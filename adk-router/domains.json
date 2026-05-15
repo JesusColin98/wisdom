@@ -41,6 +41,76 @@
       "memory_topics": ["TECH_STACK", "CODE_PATTERNS", "SYSTEM_DESIGN_DECISIONS"]
     },
     {
+      "id": "COMMUNICATION",
+      "agent": "CommunicationExpert",
+      "description": "Assertive communication, leadership, persuasion, negotiation, and public speaking.",
+      "keywords": ["communication", "leadership", "persuasion", "negotiation", "speaking", "assertive", "speech", "influence", "charisma"],
+      "memory_scope": "Communication_Expert",
+      "anki_deck_prefix": "Wisdom::Communication",
+      "obsidian_folder": "Communication/",
+      "memory_topics": ["COMMUNICATION_SKILLS", "LEADERSHIP_STYLES", "PERSUASION_TACTICS"]
+    },
+    {
+      "id": "SALES",
+      "agent": "SalesExpert",
+      "description": "Sales strategies, closing techniques, prospecting, client relationship management, and objections handling.",
+      "keywords": ["sales", "selling", "closing", "prospecting", "objection", "crm", "pitch", "deal", "negotiation"],
+      "memory_scope": "Sales_Expert",
+      "anki_deck_prefix": "Wisdom::Sales",
+      "obsidian_folder": "Sales/",
+      "memory_topics": ["SALES_STRATEGIES", "CLOSING_TECHNIQUES", "CLIENT_MANAGEMENT"]
+    },
+    {
+      "id": "PHILOSOPHY",
+      "agent": "PhilosophyExpert",
+      "description": "Philosophy, stoicism, ethics, epistemology, metaphysics, and history of philosophical thought.",
+      "keywords": ["philosophy", "stoicism", "ethics", "epistemology", "metaphysics", "plato", "aristotle", "kant", "nietzsche", "socrates"],
+      "memory_scope": "Philosophy_Expert",
+      "anki_deck_prefix": "Wisdom::Philosophy",
+      "obsidian_folder": "Philosophy/",
+      "memory_topics": ["PHILOSOPHICAL_CONCEPTS", "ETHICAL_FRAMEWORKS", "STOICISM"]
+    },
+    {
+      "id": "SYSTEMS",
+      "agent": "SystemsExpert",
+      "description": "Software systems design, cloud computing, distributed systems, scalability, and architecture.",
+      "keywords": ["system design", "cloud computing", "distributed", "scalability", "architecture", "aws", "gcp", "azure", "microservices", "load balancer"],
+      "memory_scope": "Systems_Expert",
+      "anki_deck_prefix": "Wisdom::Systems",
+      "obsidian_folder": "Systems/",
+      "memory_topics": ["SYSTEM_DESIGN", "CLOUD_ARCHITECTURE", "SCALABILITY"]
+    },
+    {
+      "id": "AI",
+      "agent": "AIExpert",
+      "description": "Artificial Intelligence, machine learning, deep learning, LLMs, neural networks, and prompt engineering.",
+      "keywords": ["artificial intelligence", "ai", "machine learning", "ml", "deep learning", "llm", "neural network", "prompt engineering", "transformer", "nlp"],
+      "memory_scope": "AI_Expert",
+      "anki_deck_prefix": "Wisdom::AI",
+      "obsidian_folder": "AI/",
+      "memory_topics": ["AI_CONCEPTS", "MACHINE_LEARNING_MODELS", "PROMPT_ENGINEERING"]
+    },
+    {
+      "id": "CREATIVITY",
+      "agent": "CreativityExpert",
+      "description": "Creativity, ideation, design thinking, innovation, problem solving, and artistic expression.",
+      "keywords": ["creativity", "ideation", "design thinking", "innovation", "problem solving", "art", "brainstorming", "inspiration", "creative"],
+      "memory_scope": "Creativity_Expert",
+      "anki_deck_prefix": "Wisdom::Creativity",
+      "obsidian_folder": "Creativity/",
+      "memory_topics": ["CREATIVE_PROCESS", "IDEATION_TECHNIQUES", "INNOVATION_FRAMEWORKS"]
+    },
+    {
+      "id": "INVESTMENTS",
+      "agent": "InvestmentsExpert",
+      "description": "Investment strategies, asset allocation, real estate, angel investing, venture capital, and wealth building.",
+      "keywords": ["investment", "investing", "asset allocation", "real estate", "angel investing", "venture capital", "wealth", "roi", "equity"],
+      "memory_scope": "Investments_Expert",
+      "anki_deck_prefix": "Wisdom::Investments",
+      "obsidian_folder": "Investments/",
+      "memory_topics": ["INVESTMENT_STRATEGIES", "ASSET_ALLOCATION", "WEALTH_BUILDING"]
+    },
+    {
       "id": "GENERAL",
       "agent": "GeneralExpert",
       "description": "General knowledge, concepts that don't fit a specific domain, interdisciplinary topics.",
