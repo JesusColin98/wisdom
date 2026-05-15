@@ -19,7 +19,7 @@ func TestServer_Memorize(t *testing.T) {
 	defer db.Close()
 
 	engine := &PostgresEngine{db: db}
-	server := NewServer(engine)
+	server := NewServer(engine, nil)
 
 	payload, _ := structpb.NewStruct(map[string]any{"key": "value"})
 
@@ -57,7 +57,7 @@ func TestServer_Recall(t *testing.T) {
 	defer db.Close()
 
 	engine := &PostgresEngine{db: db}
-	server := NewServer(engine)
+	server := NewServer(engine, nil)
 
 	now := time.Now()
 	payloadJSON := `{"data": "content"}`

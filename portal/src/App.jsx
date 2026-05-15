@@ -131,53 +131,70 @@ function AppContent() {
           </button>
         </nav>
 
-        <div className="flex flex-col gap-2 px-2">            <button 
-                onClick={async () => {
-                    const dir = prompt("Enter directory to map:", ".");
-                    if (dir) {
-                        setLoading(true);
-                        try {
-                            const res = await fetch(`${API_BASE}/cortex/map`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ directory: dir })
-                            });
-                            if (res.ok) alert("Codebase mapping initiated");
-                        } catch (e) { alert(e.message); }
-                        finally { setLoading(false); }
-                    }
-                }}
-                className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-indigo-500/10 hover:text-indigo-300 transition-all"
-            >
-                Map Codebase
-            </button>
-            <input 
-                type="file" 
-                id="doc-upload" 
-                className="hidden" 
-                accept=".pdf,.txt,.docx,.pptx,.xlsx,.png,.jpg,.jpeg"
-                onChange={async (e) => {
-                    if (e.target.files[0]) {
-                        const formData = new FormData();
-                        formData.append('document', e.target.files[0]);
-                        setLoading(true);
-                        try {
-                            const res = await fetch(`${API_BASE}/cortex/upload`, {
-                                method: 'POST',
-                                body: formData
-                            });
-                            if (res.ok) alert("Document ingested successfully");
-                        } catch (e) { alert(e.message); }
-                        finally { setLoading(false); }
-                    }
-                }}
-            />
-            <button 
-                onClick={() => document.getElementById('doc-upload').click()}
-                className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-green-500/10 hover:text-green-300 transition-all"
-            >
-                Upload Knowledge (PDF/Img)
-            </button>
+        <div className="flex flex-col gap-2 px-2">
+          <button 
+            onClick={async () => {
+              const dir = prompt("Enter directory to map:", ".");
+              if (dir) {
+                setLoading(true);
+                try {
+                  const res = await fetch(`${API_BASE}/cortex/map`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ directory: dir })
+                  });
+                  if (res.ok) alert("Codebase mapping initiated");
+                  else {
+                    const err = await res.text();
+                    alert(`Failed to initiate mapping: ${err}`);
+                  }
+                } catch (e) { 
+                  alert(`Connection error: ${e.message}`); 
+                } finally { 
+                  setLoading(false); 
+                }
+              }
+            }}
+            className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-indigo-500/10 hover:text-indigo-300 transition-all"
+          >
+            Map Codebase
+          </button>
+          
+          <input 
+            type="file" 
+            id="doc-upload" 
+            className="hidden" 
+            accept=".pdf,.txt,.docx,.pptx,.xlsx,.png,.jpg,.jpeg"
+            onChange={async (e) => {
+              if (e.target.files[0]) {
+                const formData = new FormData();
+                formData.append('document', e.target.files[0]);
+                setLoading(true);
+                try {
+                  const res = await fetch(`${API_BASE}/cortex/upload`, {
+                    method: 'POST',
+                    body: formData
+                  });
+                  if (res.ok) alert("Document ingested successfully");
+                  else {
+                    const err = await res.text();
+                    alert(`Upload failed: ${err}`);
+                  }
+                } catch (e) { 
+                  alert(`Connection error: ${e.message}`); 
+                } finally { 
+                  setLoading(false); 
+                }
+              }
+            }}
+          />
+          
+          <button 
+            onClick={() => document.getElementById('doc-upload').click()}
+            className="p-3 bg-gray-800/40 border border-gray-700/50 rounded-xl text-[9px] font-black text-gray-400 uppercase tracking-widest hover:bg-green-500/10 hover:text-green-300 transition-all"
+          >
+            Upload Knowledge (PDF/Img)
+          </button>
         </div>
 
         <div className="space-y-6">
