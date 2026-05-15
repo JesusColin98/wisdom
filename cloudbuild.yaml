@@ -506,10 +506,12 @@ steps:
           --region ${_REGION} --format 'value(status.url)')
         CORTEX_WSS=$(echo $$API_URL | sed 's/https:/wss:/')
         CHAT_WSS=$(echo $$CHAT_URL | sed 's/https:/wss:/')
+        PORTAL_URL=$(gcloud run services describe wisdom-portal \
+          --region ${_REGION} --format 'value(status.url)')
         # Rebuild portal image with live URLs baked into the bundle
         gcloud builds submit ./portal \
           --config=portal/cloudbuild.yaml \
-          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_SHORT_SHA=$SHORT_SHA,_ENGINE_URL=$$API_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
+          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_SHORT_SHA=$SHORT_SHA,_ENGINE_URL=$$API_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS,_REDIRECT_URI=$$PORTAL_URL"
     waitFor:
       - deploy-chat-service
       - deploy-api

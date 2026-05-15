@@ -24,7 +24,7 @@ export const WisdomProvider = ({ children }) => {
   const socketRef = useRef(null);
 
   const redirectToLogin = useCallback(() => {
-    const redirectUri = window.location.origin;
+    const redirectUri = import.meta.env.VITE_REDIRECT_URI || window.location.origin;
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(AUTH_SCOPE)}&prompt=consent`;
     window.location.href = authUrl;
   }, []);

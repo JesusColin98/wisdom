@@ -17,6 +17,8 @@ steps:
       - 'VITE_ENGINE_WS_URL=${_ENGINE_WS_URL}'
       - '--build-arg'
       - 'VITE_AGENT_WS_URL=${_AGENT_WS_URL}'
+      - '--build-arg'
+      - 'VITE_REDIRECT_URI=${_REDIRECT_URI}'
 
   # 2. Push the Portal container to Artifact Registry
   - id: push-portal
@@ -48,6 +50,7 @@ substitutions:
   _AGENT_URL: ''
   _ENGINE_WS_URL: ''
   _AGENT_WS_URL: ''
+  _REDIRECT_URI: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY
