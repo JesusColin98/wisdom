@@ -7,7 +7,7 @@ Wisdom has evolved from a monolithic backend into a distributed **Cognitive Runt
 
 ### Layer 1: The Glass (UX & Observability)
 We do not reinvent the wheel for knowledge management or flashcards.
-*   **Wisdom Portal (React + Vite):** The primary user interface and our "Cognitive Cockpit". Contains the **Conversational Chat Interface** (the main entry point, wrapping the ADK Router), the **Note Editor** (Obsidian-compliant, with LIFT linter and "Polish with Gemini" rewrite), the **Vault Health Dashboard**, and the **Anki Export Review Panel**. See `FRONTEND_SPEC.md` and `CHATBOT_UI_SPEC.md`.
+*   **Wisdom Portal (React + Vite):** The primary user interface and our "Cognitive Cockpit". Contains the **Conversational Chat Interface** (the main entry point, wrapping the ADK Router), the **Note Editor** (Obsidian-compliant, with LIFT linter and **IMPLEMENTED** "Polish with Gemini" rewrite), the **Vault Health Dashboard**, and the **Anki Export Review Panel**. See `FRONTEND_SPEC.md` and `CHATBOT_UI_SPEC.md`.
 *   **Obsidian & Logseq (via MCP):** Secondary interfaces for browsing the Knowledge Graph. Wisdom generates 100% compliant local Markdown files with full YAML frontmatter, wikilinks, and PARA-compatible directory structure.
 *   **Anki (via MCP):** The optional, validated UI for Spaced Repetition (SRS). Cards are pushed via the AI generation path or converted from existing Obsidian notes via the `md_to_anki` pipeline.
 

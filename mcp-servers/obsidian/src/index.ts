@@ -167,6 +167,39 @@ server.tool(
   }
 );
 
+// ── Tool: polish_note ─────────────────────────────────────────────────────────
+server.tool(
+  "polish_note",
+  "Refactor an existing Obsidian note to comply with Wisdom Ingestion Standards using Gemini.",
+  {
+    path: z.string().describe("Vault-relative path of the note to polish."),
+  },
+  async ({ path }) => {
+    try {
+      const { execSync } = require("child_process");
+      const scriptPath = "c:\\Users\\jesus\\wisdom\\wisdom\\scripts\\tools\\polish_note.py";
+      const vaultRoot = "c:\\Users\\jesus\\obsidian\\";
+      const absPath = `${vaultRoot}${path}`;
+
+      console.log(`Executing: python ${scriptPath} "${absPath}" --inplace`);
+      
+      const output = execSync(`python "${scriptPath}" "${absPath}" --inplace`, {
+        env: { ...process.env, GOOGLE_CLOUD_PROJECT: "jesuscolin2025-678c7" },
+        encoding: "utf-8"
+      });
+
+      return {
+        content: [{ type: "text", text: `✅ Note polished: ${path}\n\n${output}` }],
+      };
+    } catch (err: any) {
+      return {
+        content: [{ type: "text", text: `Polish error: ${err.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
 // ─── HTTP Proxy Endpoint for Integrations Service ────────────────────────────
 // The Go Integrations service calls this server via HTTP POST (not stdio MCP).
 // This simple Express-like handler bridges the two protocols.
@@ -198,6 +231,9 @@ const httpServer = createServer(async (req, res) => {
           break;
         case "search_vault":
           result = await searchVaultHandler(params);
+          break;
+        case "polish_note":
+          result = await polishNoteHandler(params);
           break;
         default:
           res.writeHead(400);
@@ -248,6 +284,19 @@ async function readNoteHandler(params: any) {
 async function searchVaultHandler(params: any) {
   const resp = await obsidian.post("/search/simple/", { query: params.query, contextLength: 200 });
   return { results: resp.data };
+}
+
+async function polishNoteHandler(params: any) {
+  const { execSync } = require("child_process");
+  const scriptPath = "c:\\Users\\jesus\\wisdom\\wisdom\\scripts\\tools\\polish_note.py";
+  const vaultRoot = "c:\\Users\\jesus\\obsidian\\";
+  const absPath = `${vaultRoot}${params.path}`;
+
+  const output = execSync(`python "${scriptPath}" "${absPath}" --inplace`, {
+    env: { ...process.env, GOOGLE_CLOUD_PROJECT: "jesuscolin2025-678c7" },
+    encoding: "utf-8"
+  });
+  return { success: true, path: params.path, output };
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
