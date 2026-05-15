@@ -44,7 +44,7 @@ def get_access_token():
         print(f"Error getting access token: {e.stderr}", file=sys.stderr)
         sys.exit(1)
 
-def polish_note(file_path: str, inplace: bool = False):
+def polish_note(file_path: str, model_id: str = "gemini-3.1-pro-preview", inplace: bool = False):
     if not os.path.exists(file_path):
         print(f"Error: File {file_path} not found.")
         return
@@ -54,7 +54,6 @@ def polish_note(file_path: str, inplace: bool = False):
 
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "jesuscolin2025-678c7")
     region = os.environ.get("GOOGLE_CLOUD_REGION", "us-central1")
-    model_id = "gemini-3.1-pro-preview"
     
     token = get_access_token()
     url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model_id}:generateContent"
@@ -116,10 +115,11 @@ def polish_note(file_path: str, inplace: bool = False):
         print("\n------------------------\n")
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python polish_note.py <file_path> [--inplace]")
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser(description="Polish an Obsidian note using Gemini.")
+    parser.add_argument("path", help="Path to the markdown file.")
+    parser.add_argument("--model", default="gemini-3.1-pro-preview", help="Gemini model ID.")
+    parser.add_argument("--inplace", action="store_true", help="Overwrite the original file.")
     
-    path = sys.argv[1]
-    do_inplace = "--inplace" in sys.argv
-    polish_note(path, do_inplace)
+    args = parser.parse_args()
+    polish_note(args.path, args.model, args.inplace)
