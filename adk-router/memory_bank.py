@@ -38,7 +38,7 @@ class MemoryBank:
         self._top_k = settings.memory_bank_top_k
 
         # Initialize the Memory Bank client.
-        self._client = aiplatform.MemorybankServiceClient()
+        self._client = aiplatform.MemoryBankServiceClient()
 
         logger.info(
             "MemoryBank initialized",
