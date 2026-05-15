@@ -16,8 +16,9 @@ We do not reinvent the wheel for knowledge management or flashcards.
 
 ### Layer 3: Mix of Experts (MoE)
 *   Highly decoupled, specialized AI agents handling specific domains.
-*   Current Experts: **Finance (Fibras)**, **Chess**, **Language Learning**, **Technology**.
-*   Each expert possesses unique prompts, logic, and tools, ensuring high-quality, domain-specific outputs without cross-domain hallucinations.
+*   **Static Experts:** Finance (Fibras), Chess, Language Learning, Technology.
+*   **Dynamic Experts:** Scaling domains horizontally via the **Expert Registry** (Communication, Sales, Philosophy, etc.). Registered in Cortex and hot-loaded by the Router.
+*   **Autonomous Research:** Every expert is equipped with the `Researcher` tool to investigate unfamiliar topics via Google Search and web crawling.
 
 ### Layer 4: Cognitive Memory (Vertex AI Memory Bank)
 *   The LLM's long-term memory. Instead of storing raw chat logs, it uses **Reflective Memory Management**.

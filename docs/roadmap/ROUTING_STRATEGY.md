@@ -13,10 +13,11 @@
 *   Handles JWT Auth, rate limiting, and mTLS internal routing.
 
 ### Stage 2: ADK Router (The Cognitive Classifier)
-*   **Technology:** Python Microservice. (Leveraging Python's first-class support for AI/Vertex SDKs while preserving Go for the factual backend).
-*   LLM-powered (Gemini Flash).
-*   Registers domains from `UNIVERSAL_DOMAIN_CONTRACT.md`.
-*   Routes based on intent to specific Experts.
+*   **Technology:** Python Microservice.
+*   **Hybrid Domain Loading:** Combines static baseline domains from `domains.json` with dynamic `DomainConfig` nodes fetched from `Cortex`.
+*   **LLM-powered:** Gemini Flash performs high-confidence classification.
+*   **Keyword Optimization:** Uses an O(1) keyword index (rebuilt on hot-load) to bypass LLM calls for unambiguous queries.
+*   **Hot Reload:** The router can be re-initialized at runtime via the `Expert Registry` API, allowing new domains to be added without downtime.
 
 ## 2. Authentication Model
 *   **External:** Bearer JWT in the `Authorization` header.

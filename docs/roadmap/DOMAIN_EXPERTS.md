@@ -30,5 +30,17 @@ When a user inputs a query, the `Thalamus` router evaluates the intent and dispa
 *   **Memory Bank Scope:** `agent_name: "Tech_Expert"`.
 *   **Integration:** Heavy reliance on Obsidian Markdown, generating interconnected Knowledge Graphs using `[[Wikilinks]]` for deep, conceptual exploration.
 
+### 5. Dynamic Experts (The Expansion Layer)
+*   **Responsibility:** Any domain registered at runtime (e.g., Sales, Philosophy, Music).
+*   **Architecture:** Uses the `DynamicExpert` class to instantiate agents from a JSON configuration.
+*   **Persistence:** Configurations are stored in `Cortex` as `DomainConfig` facts, ensuring persistence across service restarts.
+*   **Capabilities:** All dynamic experts inherit the standard **Autonomous Research** tool and **Memory Consolidation** pipeline.
+
+## Autonomous Research Capability
+All experts can now invoke the `Researcher` microservice. When an expert detects a knowledge gap or the user requests a deep-dive, the expert:
+1.  Triggers `_tool_research_topic(topic)`.
+2.  The `Researcher` service crawls the web and generates a `ResearchReport`.
+3.  The report is ingested into the user's `Knowledge Graph` (Obsidian) and `Memory Bank`.
+
 ## Memory Isolation Guarantee
 Because each Expert uses a hardcoded `agent_name` scope when calling `RetrieveMemories` and `GenerateMemories` from the Vertex AI Memory Bank, **data never overlaps**. The Finance Agent will never hallucinate a chess move into your investment strategy, and the LLM context window remains incredibly efficient.
