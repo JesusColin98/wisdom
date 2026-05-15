@@ -247,3 +247,54 @@ func (e *PostgresEngine) Recall(ctx context.Context, id string) (*CognitionRespo
 
 	return response, nil
 }
+
+// GetAllNodes fetches all nodes from the database.
+func (e *PostgresEngine) GetAllNodes(ctx context.Context) ([]*Node, error) {
+	query := `SELECT id, type, payload, confidence, requires_human, ttl, created_at, updated_at FROM nodes`
+	rows, err := e.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nodes []*Node
+	for rows.Next() {
+		var node Node
+		var payloadRaw []byte
+		var ttl sql.NullTime
+		if err := rows.Scan(
+			&node.ID, &node.Type, &payloadRaw, &node.Confidence, &node.RequiresHuman,
+			&ttl, &node.CreatedAt, &node.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if ttl.Valid {
+			node.TTL = &ttl.Time
+		}
+		if err := json.Unmarshal(payloadRaw, &node.Payload); err != nil {
+			return nil, err
+		}
+		nodes = append(nodes, &node)
+	}
+	return nodes, nil
+}
+
+// GetAllEdges fetches all edges from the database.
+func (e *PostgresEngine) GetAllEdges(ctx context.Context) ([]*Edge, error) {
+	query := `SELECT source_id, target_id, relation, created_at FROM edges`
+	rows, err := e.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var edges []*Edge
+	for rows.Next() {
+		var edge Edge
+		if err := rows.Scan(&edge.SourceID, &edge.TargetID, &edge.Relation, &edge.CreatedAt); err != nil {
+			return nil, err
+		}
+		edges = append(edges, &edge)
+	}
+	return edges, nil
+}
