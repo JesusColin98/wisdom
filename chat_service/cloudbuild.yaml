@@ -1,7 +1,57 @@
+substitutions:
+  _REGION: us-central1
+  _REPO: wisdom-repo
+
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', '${_IMAGE_TAG}', '.']
+  # ─── Build image ────────────────────────────────────────────────────────────
+  - id: build-chat-service
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:latest
+      - .
+
+  # ─── Push image ─────────────────────────────────────────────────────────────
+  - id: push-chat-service
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service
+    waitFor:
+      - build-chat-service
+
+  # ─── Deploy to Cloud Run ─────────────────────────────────────────────────────
+  # Depends on wisdom-cortex being live (resolves URL at deploy time).
+  - id: deploy-chat-service
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        CORTEX_URL=$(gcloud run services describe wisdom-cortex \
+          --region ${_REGION} --format 'value(status.url)')
+        gcloud run deploy wisdom-chat-service \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --no-allow-unauthenticated \
+          --concurrency=80 \
+          --min-instances=0 \
+          --max-instances=5 \
+          --set-env-vars "WISDOM_ENGINE_URL=$$CORTEX_URL,PORT=8080" \
+          --set-secrets "GEMINI_API_KEY=GEMINI_API_KEY:latest"
+    waitFor:
+      - push-chat-service
+
 images:
-- '${_IMAGE_TAG}'
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA
+
 options:
   logging: CLOUD_LOGGING_ONLY
+  substitutionOption: ALLOW_LOOSE
+
+timeout: 600s
