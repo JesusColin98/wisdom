@@ -38,6 +38,7 @@ steps:
       - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
+      - '--port=8080'
 
 substitutions:
   _REGION: us-central1

@@ -484,7 +484,6 @@ images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-entity:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-adk-router:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:$SHORT_SHA
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY
