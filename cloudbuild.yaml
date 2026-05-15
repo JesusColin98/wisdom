@@ -138,6 +138,20 @@ steps:
     waitFor:
       - go-build-check
 
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-api:$SHORT_SHA
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-api:latest
+      - -f
+      - wisdom/Dockerfile.api
+      - ./wisdom
+    waitFor:
+      - go-build-check
+
   # ─── Phase 4: Build Python Services (parallel, no Go dependency) ───────────
   - id: build-adk-router
     name: gcr.io/cloud-builders/docker
@@ -453,6 +467,23 @@ steps:
       - deploy-entity
       - deploy-researcher
 
+  # ─── Deploy Wisdom API (REST Gateway) ──────────
+  - id: deploy-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud run deploy wisdom-api \
+          --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-api:$SHORT_SHA \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --set-secrets "DB_CONN_STRING=CORTEX_DB_CONN:latest"
+    waitFor:
+      - build-api
+      - deploy-thalamus
+
   # ─── Deploy Portal (public frontend — last, needs chat_service URL) ────────
   - id: deploy-portal
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
@@ -460,22 +491,23 @@ steps:
     args:
       - -c
       - |
-        CORTEX_URL=$(gcloud run services describe wisdom-cortex \
+        API_URL=$(gcloud run services describe wisdom-api \
           --region ${_REGION} --format 'value(status.url)')
         CHAT_URL=$(gcloud run services describe wisdom-chat-service \
           --region ${_REGION} --format 'value(status.url)')
-        CORTEX_WSS=$(echo $$CORTEX_URL | sed 's/https:/wss:/')
+        CORTEX_WSS=$(echo $$API_URL | sed 's/https:/wss:/')
         CHAT_WSS=$(echo $$CHAT_URL | sed 's/https:/wss:/')
         # Rebuild portal image with live URLs baked into the bundle
         gcloud builds submit ./portal \
           --config=portal/cloudbuild.yaml \
-          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_SHORT_SHA=$SHORT_SHA,_ENGINE_URL=$$CORTEX_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
+          --substitutions="_REGION=${_REGION},_REPO=${_REPO},_SHORT_SHA=$SHORT_SHA,_ENGINE_URL=$$API_URL,_AGENT_URL=$$CHAT_URL,_ENGINE_WS_URL=$$CORTEX_WSS,_AGENT_WS_URL=$$CHAT_WSS"
     waitFor:
       - deploy-chat-service
-      - deploy-thalamus
+      - deploy-api
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-cortex:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-api:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-thalamus:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-mastery:$SHORT_SHA
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-researcher:$SHORT_SHA
