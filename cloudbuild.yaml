@@ -241,15 +241,6 @@ steps:
     waitFor:
       - build-chat-service
 
-  - id: push-portal
-    name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - --all-tags
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal
-    waitFor:
-      - build-portal
-
   # ─── Phase 6: Deploy to Cloud Run (dependency order) ─────────────────────
   # Cortex first — all other services depend on it.
   - id: deploy-cortex
