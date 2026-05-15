@@ -159,28 +159,6 @@ steps:
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-chat-service:latest
       - ./chat_service
 
-  # ─── Phase 4b: Build Portal (Node → Nginx image) ─────────────────────────
-  # Note: VITE env vars with live Cloud Run URLs are injected at deploy time
-  # via the deploy-portal step (build arg pattern). A placeholder build is
-  # done here; the final URL injection happens during the deploy step.
-  - id: build-portal
-    name: gcr.io/cloud-builders/docker
-    args:
-      - build
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:$SHORT_SHA
-      - -t
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/wisdom-portal:latest
-      - --build-arg
-      - VITE_ENGINE_URL=__CORTEX_URL__
-      - --build-arg
-      - VITE_AGENT_URL=__CHAT_URL__
-      - --build-arg
-      - VITE_ENGINE_WS_URL=__CORTEX_WS_URL__
-      - --build-arg
-      - VITE_AGENT_WS_URL=__CHAT_WS_URL__
-      - ./portal
-
   # ─── Phase 5: Push All Images (parallel) ─────────────────────────────────
   - id: push-cortex
     name: gcr.io/cloud-builders/docker
