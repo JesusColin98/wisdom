@@ -67,6 +67,7 @@ def polish_note(file_path: str, model_id: str = "gemini-3.1-pro-preview", inplac
 
     payload = {
         "contents": [{
+            "role": "user",
             "parts": [{"text": prompt}]
         }],
         "generationConfig": {
