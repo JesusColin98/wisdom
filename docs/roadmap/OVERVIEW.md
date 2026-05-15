@@ -7,9 +7,9 @@ Wisdom has evolved from a monolithic backend into a distributed **Cognitive Runt
 
 ### Layer 1: The Glass (UX & Observability)
 We do not reinvent the wheel for knowledge management or flashcards.
-*   **Obsidian & Logseq (via MCP):** The primary interfaces for browsing the Knowledge Graph. Wisdom generates 100% compliant local Markdown files.
-*   **Anki (via MCP):** The optional, validated UI for Spaced Repetition (SRS).
-*   **Wisdom Portal (React):** Our "Mission Control". Used exclusively for system observability (checking Researcher scraping status, microservice health) and as an alternative, proprietary Wisdom Study UI.
+*   **Wisdom Portal (React + Vite):** The primary user interface and our "Cognitive Cockpit". Contains the **Conversational Chat Interface** (the main entry point, wrapping the ADK Router), the **Note Editor** (Obsidian-compliant, with LIFT linter and "Polish with Gemini" rewrite), the **Vault Health Dashboard**, and the **Anki Export Review Panel**. See `FRONTEND_SPEC.md` and `CHATBOT_UI_SPEC.md`.
+*   **Obsidian & Logseq (via MCP):** Secondary interfaces for browsing the Knowledge Graph. Wisdom generates 100% compliant local Markdown files with full YAML frontmatter, wikilinks, and PARA-compatible directory structure.
+*   **Anki (via MCP):** The optional, validated UI for Spaced Repetition (SRS). Cards are pushed via the AI generation path or converted from existing Obsidian notes via the `md_to_anki` pipeline.
 
 ### Layer 2: Orchestration (The Router)
 *   **Thalamus (ADK Gateway):** Built using the Agent Development Kit (ADK). This layer receives the user's prompt (e.g., "Analyze my chess game" or "What's the status of my Fibras?"), manages the session (`CreateSession`), and routes the request to the correct Domain Expert.

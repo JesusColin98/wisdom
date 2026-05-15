@@ -5,11 +5,19 @@ Wisdom's architecture relies on strict separation of concerns and a standardized
 ## 1. Authoritative Data Flow (Gap R3 Fix)
 To prevent integration spaghetti, all creation and review cycles follow this single authoritative sequence:
 
-### Knowledge Creation Path
+### Knowledge Creation Path (AI-Generated)
 `Expert Agent` -> `Integrations Service` -> `MCP Server (Obsidian/Anki/Logseq)`
 
 ### Mastery Feedback Path
 `Anki Desktop` -> `AnkiConnect` -> `MCP Server` -> `Integrations Service (Polling)` -> `Trace Service` -> `Cortex DB`
+
+### Markdown → Anki Conversion Path (User-Triggered)
+`Portal UI` -> `Integrations Service (md_to_anki)` -> `obsidian-mcp-server (read note)` -> `Integrations (parse)` -> `Anki Export Queue` -> `AnkiConnect`
+See `MD_TO_ANKI_PIPELINE.md` for the full spec.
+
+### Note Polish Path (User-Triggered)
+`Portal UI` -> `Integrations Service (polish_note)` -> `Gemini API` -> `Diff Response` -> `Portal UI (diff view)` -> `obsidian-mcp-server (write accepted hunks)`
+See `INGESTION_STANDARDS.md §5` for the Gemini audit contract.
 
 ## 2. Internal Communication: gRPC & Pub/Sub
 *   **Synchronous:** Internal microservices communicate via **gRPC (Protobuf)** with mTLS (e.g., Thalamus to Cortex).
