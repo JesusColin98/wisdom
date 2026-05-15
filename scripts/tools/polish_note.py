@@ -56,7 +56,7 @@ def polish_note(file_path: str, model_id: str = "gemini-3.1-pro-preview", inplac
     region = os.environ.get("GOOGLE_CLOUD_REGION", "us-central1")
     
     token = get_access_token()
-    url = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model_id}:generateContent"
+    url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/publishers/google/models/{model_id}:generateContent"
     
     now = datetime.datetime.now()
     prompt = POLISH_PROMPT_TEMPLATE.format(
