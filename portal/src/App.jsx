@@ -230,10 +230,10 @@ function AppContent() {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-black text-gray-100 truncate tracking-tight">{user.ldap}</div>
+                <div className="text-sm font-black text-gray-100 truncate tracking-tight">{user?.ldap}</div>
                 <div className="text-[10px] text-indigo-400 font-black uppercase tracking-widest flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                  {user.role}
+                  {user?.role}
                 </div>
               </div>
             </div>

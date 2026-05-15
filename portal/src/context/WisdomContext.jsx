@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { Brain, Loader2 } from 'lucide-react';
 
 const WisdomContext = createContext();
 
@@ -29,10 +30,12 @@ export const WisdomProvider = ({ children }) => {
     window.location.href = authUrl;
   }, []);
 
+  const initialized = useRef(false);
+
   const fetchUser = useCallback(async (token) => {
+    if (!token) return false;
     try {
-      setLoading(true);
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const headers = { 'Authorization': `Bearer ${token}` };
       const resp = await fetch(`${API_BASE}/whoami`, { headers });
       
       if (resp.ok) {
@@ -44,50 +47,77 @@ export const WisdomProvider = ({ children }) => {
             token: token
         };
         setUser(enrichedUser);
-        setLoading(false);
+        setError(null);
         return true;
       } else if (resp.status === 401) {
         console.warn("Unauthorized, clearing token");
         localStorage.removeItem('wisdom_token');
         return false;
+      } else {
+        const errorText = await resp.text();
+        setError(`Identity verification failed: ${resp.status} ${errorText}`);
+        return false;
       }
     } catch (err) {
       console.error("Failed to fetch user:", err);
+      setError("Cortex unreachable. Please check your connection.");
+      return false;
     }
-    setLoading(false);
-    return false;
   }, [API_BASE]);
 
+  // Effect 1: Authentication & Token Management
   useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     const initializeAuth = async () => {
-      // 1. Check for token in URL (OAuth callback)
-      const hash = window.location.hash;
-      const params = new URLSearchParams(hash.substring(1));
-      let token = params.get('access_token');
+      setLoading(true);
+      try {
+        // 1. Check for token in URL (OAuth callback)
+        const hash = window.location.hash;
+        const params = new URLSearchParams(hash.substring(1));
+        let token = params.get('access_token');
 
-      if (token) {
-        console.log("Captured token from URL");
-        localStorage.setItem('wisdom_token', token);
-        // Clear hash from URL
-        window.history.replaceState(null, null, window.location.pathname);
-      } else {
-        // 2. Check for token in localStorage
-        token = localStorage.getItem('wisdom_token');
-      }
-
-      if (token) {
-        const success = await fetchUser(token);
-        if (!success) {
-          redirectToLogin();
+        if (token) {
+          console.log("Captured token from URL");
+          localStorage.setItem('wisdom_token', token);
+          window.history.replaceState(null, null, window.location.pathname);
+        } else {
+          token = localStorage.getItem('wisdom_token');
         }
-      } else {
-        redirectToLogin();
+
+        if (token) {
+          const success = await fetchUser(token);
+          if (success) {
+            setLoading(false);
+          } else {
+            // If failed, check if we should redirect
+            if (!localStorage.getItem('wisdom_token')) {
+              redirectToLogin();
+              // Don't set loading(false) to prevent flicker
+            } else {
+              setLoading(false); // Show the error state
+            }
+          }
+        } else {
+          redirectToLogin();
+          // Don't set loading(false)
+        }
+      } catch (e) {
+        console.error("Auth init error:", e);
+        setError("System initialization failed.");
+        setLoading(false);
       }
     };
 
     initializeAuth();
+  }, [fetchUser, redirectToLogin]);
 
-    // Shared WebSocket
+  // Effect 2: Shared WebSocket Connection
+  useEffect(() => {
+    // Only connect if we have a user or are not loading
+    if (!user) return;
+
     const socket = new WebSocket(`${WS_BASE}/ws`);
     
     socket.onopen = () => {
@@ -106,7 +136,8 @@ export const WisdomProvider = ({ children }) => {
 
     socket.onerror = (event) => {
       console.error("WebSocket error:", event);
-      setError("WebSocket connection failed");
+      // Don't set global error for WS to avoid blocking the UI
+      console.warn("WebSocket connection failed");
     };
 
     socket.onclose = () => {
@@ -120,7 +151,7 @@ export const WisdomProvider = ({ children }) => {
         socket.close();
       }
     };
-  }, [WS_BASE, fetchUser, redirectToLogin]);
+  }, [WS_BASE, user]);
 
   const logout = () => {
     localStorage.removeItem('wisdom_token');
@@ -138,7 +169,34 @@ export const WisdomProvider = ({ children }) => {
   }, []);
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0a0a0a', color: '#fff' }}>Loading Wisdom...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0d1117] text-white overflow-hidden relative">
+        {/* Animated background glows */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="p-5 bg-indigo-500/10 rounded-3xl border border-indigo-500/20 shadow-[0_0_50px_rgba(99,102,241,0.15)] animate-bounce duration-[2000ms]">
+            <Brain className="text-indigo-400 w-16 h-16" />
+          </div>
+          
+          <div className="flex flex-col items-center gap-2">
+            <h2 className="text-2xl font-black tracking-[0.2em] uppercase italic text-indigo-100">Wisdom</h2>
+            <div className="flex items-center gap-3 px-4 py-2 bg-white/5 rounded-full border border-white/10 backdrop-blur-md">
+              <Loader2 className="text-indigo-400 animate-spin w-4 h-4" />
+              <span className="text-[10px] font-bold text-indigo-300 tracking-[0.3em] uppercase">Initializing Neural Atlas</span>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="absolute bottom-12 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-sm font-bold text-red-200">{error}</span>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
