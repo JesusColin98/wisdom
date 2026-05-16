@@ -3,7 +3,7 @@ import { Activity, Zap, Clock, RefreshCw, BarChart3, TrendingUp } from 'lucide-r
 import { useWisdom } from '../context/WisdomContext';
 
 const MetabolismView = () => {
-  const { API_BASE, setLoading, setError } = useWisdom();
+  const { API_BASE, setError } = useWisdom();
   const [report, setReport] = useState({ TSR: 0, MetabolicRate: 0, TotalTokens: 0, SignalUnits: 0 });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
