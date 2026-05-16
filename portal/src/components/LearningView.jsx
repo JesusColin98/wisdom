@@ -3,7 +3,7 @@ import {
   Compass, 
   FileText, 
   Search, 
-  Youtube,
+  Video,
   Loader2, 
   CheckCircle2, 
   Circle, 
