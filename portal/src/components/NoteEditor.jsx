@@ -39,7 +39,7 @@ const NoteEditor = ({ initialNode, onBack }) => {
         body: JSON.stringify({
           id: id || `note-${Date.now()}`,
           content: content,
-          author: user.ldap,
+          author: user?.ldap || 'anonymous',
           namespace_id: 'ns-engineering'
         })
       });
@@ -144,7 +144,7 @@ const NoteEditor = ({ initialNode, onBack }) => {
           <span>Markdown GFM enabled</span>
         </div>
         <div>
-          {user.ldap}@google.com • {user.is_admin ? 'L7_ADMIN' : 'STANDARD_USER'}
+          {user?.ldap}@google.com • {user?.is_admin ? 'L7_ADMIN' : 'STANDARD_USER'}
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ const LearningView = () => {
           topic: formData.topic,
           url: formData.url,
           content: formData.content,
-          user_id: user.ldap || 'anonymous'
+          user_id: user?.ldap || 'anonymous'
         })
       });
       const data = await response.json();
