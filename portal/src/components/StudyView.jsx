@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  BookOpen, ChevronRight, CheckCircle2, XCircle, Brain,
-  Loader2, Sparkles, Trophy, Clock, Target, ArrowRight,
-  RotateCcw, Flame, TrendingUp, BarChart2
+  BookOpen, CheckCircle2, XCircle,
+  Loader2, Sparkles, Trophy, ArrowRight,
+  RotateCcw, Flame
 } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
@@ -146,7 +146,9 @@ export default function StudyView() {
         const data = await res.json();
         setCards(data.cards || []);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load cards:', err);
+    }
     finally { setLoading(false); }
   }, [API_BASE, userId]);
 
@@ -180,7 +182,9 @@ export default function StudyView() {
           current_mastery_score: card.mastery_score,
         }),
       });
-    } catch {}
+    } catch (err) {
+      console.error('Failed to submit grade:', err);
+    }
 
     // Advance to next card.
     setSubmitting(false);
