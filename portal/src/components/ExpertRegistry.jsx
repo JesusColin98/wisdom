@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Brain, Trash2, Save, X, Sparkles, BookOpen, 
-  Folder, MessageSquare, Tag, ChevronDown, CheckCircle2 
+  Plus, Brain, Save, X, Sparkles, BookOpen, 
+  Folder, MessageSquare, Tag, CheckCircle2 
 } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Activity, CheckCircle2, XCircle, Clock, AlertTriangle,
   RefreshCw, Zap, Server, Brain, Database, Globe,
-  ArrowRight, Wifi, WifiOff, ChevronRight
+  ArrowRight, Wifi, WifiOff
 } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
@@ -274,6 +274,13 @@ export default function MissionControlView() {
                 <RoutingLogEntry key={i} entry={entry} />
               ))}
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+iv>
           )}
         </div>
       </div>
