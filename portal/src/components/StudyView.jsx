@@ -155,7 +155,7 @@ export default function StudyView() {
   }, [loadCards]);
 
   // ─── Submit Grade ────────────────────────────────────────────────────────
-  const submitGrade = async (grade) => {
+  const submitGrade = useCallback(async (grade) => {
     const card = cards[currentIdx];
     if (!card || submitting) return;
     setSubmitting(true);
@@ -190,7 +190,7 @@ export default function StudyView() {
       setCurrentIdx(i => i + 1);
       setRevealed(false);
     }
-  };
+  }, [API_BASE, cards, currentIdx, submitting, userId]);
 
   // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
   useEffect(() => {

@@ -310,24 +310,6 @@ const ChatView = () => {
 };
 
 export default ChatView;
-dom() * 18) + 6}px; }
-              }
-            `}</style>
-          </div>
-        )}
-      </div>
-
-      {/* ── Messages ── */}
-      <ChatMessageList messages={messages} />
-
-      {/* ── Control Panel ── */}
-      <ChatControlPanel
-        mode={mode}
-        isListening={isListening}
-        inputText={inputText}
-        onModeChange={handleModeChange}
-        onToggleMic={toggleMic}
-        onInputChange={setInputText}
         onSendText={handleSendText}
       />
     </div>
