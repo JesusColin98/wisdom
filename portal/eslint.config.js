@@ -32,6 +32,8 @@ export default [
         prompt: "readonly",
         FormData: "readonly",
         URL: "readonly",
+        URLSearchParams: "readonly",
+        localStorage: "readonly",
         WebSocket: "readonly",
         navigator: "readonly",
         Blob: "readonly",
