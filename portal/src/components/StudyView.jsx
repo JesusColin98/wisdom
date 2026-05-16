@@ -151,7 +151,7 @@ export default function StudyView() {
   }, [API_BASE, userId]);
 
   useEffect(() => {
-    loadCards();
+    Promise.resolve().then(() => loadCards());
   }, [loadCards]);
 
   // ─── Submit Grade ────────────────────────────────────────────────────────

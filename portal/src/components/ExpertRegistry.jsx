@@ -41,8 +41,8 @@ export default function ExpertRegistry() {
   };
 
   useEffect(() => {
-    fetchDomains();
-  }, [AGENT_BASE]);
+    Promise.resolve().then(() => fetchDomains());
+  }, [AGENT_BASE, fetchDomains]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -1,5 +1,5 @@
 /* global AudioContext, AudioWorkletNode */
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useWisdom } from '../context/WisdomContext';
 
 // Decoupled chat sub-components
@@ -200,6 +200,14 @@ const ChatView = () => {
     if (newMode === 'text' && isListening) stopMic();
     setMode(newMode);
   };
+
+  // ── Memoized Styles ────────────────────────────────────────────────────────
+  const waveStyle = useMemo(() => `
+    @keyframes waveBar {
+      from { height: 4px; }
+      to   { height: 18px; }
+    }
+  `, []);
 
   // ── Send text message ──────────────────────────────────────────────────────
   const handleSendText = () => {
