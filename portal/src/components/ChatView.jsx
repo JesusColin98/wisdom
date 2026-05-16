@@ -310,10 +310,3 @@ const ChatView = () => {
 };
 
 export default ChatView;
-        onSendText={handleSendText}
-      />
-    </div>
-  );
-};
-
-export default ChatView;
