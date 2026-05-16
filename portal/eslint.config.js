@@ -37,6 +37,8 @@ export default [
         WebSocket: "readonly",
         navigator: "readonly",
         Blob: "readonly",
+        AbortSignal: "readonly",
+        EventSource: "readonly",
       },
     },
     rules: {
