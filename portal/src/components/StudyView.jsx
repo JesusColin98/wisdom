@@ -154,20 +154,6 @@ export default function StudyView() {
     loadCards();
   }, [loadCards]);
 
-  // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
-  useEffect(() => {
-    const onKey = (e) => {
-      if (!revealed) {
-        if (e.code === 'Space') { e.preventDefault(); setRevealed(true); }
-        return;
-      }
-      const grade = GRADES.find(g => g.key === e.key);
-      if (grade) submitGrade(grade.value);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [revealed, currentIdx]);
-
   // ─── Submit Grade ────────────────────────────────────────────────────────
   const submitGrade = async (grade) => {
     const card = cards[currentIdx];
@@ -205,6 +191,20 @@ export default function StudyView() {
       setRevealed(false);
     }
   };
+
+  // ─── Keyboard Shortcuts ──────────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!revealed) {
+        if (e.code === 'Space') { e.preventDefault(); setRevealed(true); }
+        return;
+      }
+      const grade = GRADES.find(g => g.key === e.key);
+      if (grade) submitGrade(grade.value);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [revealed, currentIdx, submitGrade]);
 
   const currentCard = cards[currentIdx];
   const progress = cards.length > 0 ? ((currentIdx) / cards.length) * 100 : 0;

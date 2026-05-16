@@ -287,10 +287,30 @@ const ChatView = () => {
                 }}
               />
             ))}
-            <style>{`
-              @keyframes waveBar {
-                from { height: 4px; }
-                to   { height: ${Math.floor(Math.random() * 18) + 6}px; }
+            <style>{waveStyle}</style>
+          </div>
+        )}
+      </div>
+
+      {/* ── Messages ── */}
+      <ChatMessageList messages={messages} />
+
+      {/* ── Control Panel ── */}
+      <ChatControlPanel
+        mode={mode}
+        isListening={isListening}
+        inputText={inputText}
+        onModeChange={handleModeChange}
+        onToggleMic={toggleMic}
+        onInputChange={setInputText}
+        onSendText={handleSendText}
+      />
+    </div>
+  );
+};
+
+export default ChatView;
+dom() * 18) + 6}px; }
               }
             `}</style>
           </div>
