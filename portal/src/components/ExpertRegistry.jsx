@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Brain, Save, X, Sparkles, BookOpen, 
   Folder, MessageSquare, Tag, CheckCircle2 
@@ -22,13 +22,11 @@ export default function ExpertRegistry() {
   });
 
   // Fetch existing domains
-  const fetchDomains = async () => {
+  const fetchDomains = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`${AGENT_BASE}/domains`);
       const data = await res.json();
-      // domains.json structure is { domains: { ID: { ... } } } or [ { ... } ]
-      // Our updated backend returns { domains: { ... } }
       const domainList = data.domains 
         ? Object.entries(data.domains).map(([id, cfg]) => ({ id, ...cfg }))
         : [];
@@ -38,11 +36,11 @@ export default function ExpertRegistry() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [AGENT_BASE]);
 
   useEffect(() => {
     Promise.resolve().then(() => fetchDomains());
-  }, [AGENT_BASE, fetchDomains]);
+  }, [fetchDomains]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

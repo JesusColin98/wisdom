@@ -158,7 +158,9 @@ export default function MissionControlView() {
           avgLatency: Math.round((prev.avgLatency + (entry.elapsed_ms || 0)) / 2),
           uptime: prev.uptime,
         }));
-      } catch {}
+      } catch (err) {
+        console.error('SSE Routing Log error:', err);
+      }
     });
 
     return () => es.close();
@@ -168,7 +170,9 @@ export default function MissionControlView() {
   useEffect(() => {
     if (!lastEvent) return;
     if (lastEvent.type === 'wisdom.router.decision_logged') {
-      setRoutingLog(prev => [lastEvent, ...prev].slice(0, 50));
+      Promise.resolve().then(() => {
+        setRoutingLog(prev => [lastEvent, ...prev].slice(0, 50));
+      });
     }
   }, [lastEvent]);
 
@@ -274,13 +278,6 @@ export default function MissionControlView() {
                 <RoutingLogEntry key={i} entry={entry} />
               ))}
             </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-iv>
           )}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Globe, RefreshCw, CheckCircle2, Clock, AlertCircle,
-  ExternalLink, Loader2, Play, Pause, Rss, Tag, Link2
+  Globe, RefreshCw, CheckCircle2,
+  ExternalLink, Loader2, Play, Rss, Tag, Link2
 } from 'lucide-react';
 import { useWisdom } from '../context/WisdomContext';
 
@@ -116,7 +116,9 @@ export default function ResearcherView() {
     try {
       const res = await fetch(`${API_BASE}/api/v1/research/jobs`);
       if (res.ok) setJobs(await res.json());
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+    }
   }, [API_BASE]);
 
   const fetchArticles = useCallback(async () => {
@@ -126,13 +128,17 @@ export default function ResearcherView() {
         const data = await res.json();
         setRecentArticles(data.articles || []);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch articles:', err);
+    }
     finally { setLoading(false); }
   }, [API_BASE]);
 
   useEffect(() => {
-    fetchJobs();
-    fetchArticles();
+    Promise.resolve().then(() => {
+      fetchJobs();
+      fetchArticles();
+    });
     const interval = setInterval(fetchJobs, 10_000);
     return () => clearInterval(interval);
   }, [fetchJobs, fetchArticles]);
@@ -141,12 +147,16 @@ export default function ResearcherView() {
   useEffect(() => {
     if (!lastEvent) return;
     if (lastEvent.type === 'wisdom.researcher.scrape_progress') {
-      setJobs(prev => prev.map(j =>
-        j.id === lastEvent.job_id ? { ...j, ...lastEvent } : j
-      ));
+      Promise.resolve().then(() => {
+        setJobs(prev => prev.map(j =>
+          j.id === lastEvent.job_id ? { ...j, ...lastEvent } : j
+        ));
+      });
     }
     if (lastEvent.type === 'wisdom.knowledge.ingested') {
-      setRecentArticles(prev => [lastEvent, ...prev].slice(0, 12));
+      Promise.resolve().then(() => {
+        setRecentArticles(prev => [lastEvent, ...prev].slice(0, 12));
+      });
     }
   }, [lastEvent]);
 
@@ -162,7 +172,9 @@ export default function ResearcherView() {
       });
       setNewTopic('');
       setTimeout(fetchJobs, 1000);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to submit job:', err);
+    }
     finally { setSubmitting(false); }
   };
 
