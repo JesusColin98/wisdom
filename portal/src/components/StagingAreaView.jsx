@@ -101,12 +101,14 @@ export default function StagingAreaView() {
         const data = await res.json();
         setQueue(data.items || []);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch queue:', err);
+    }
     finally { setLoading(false); }
   }, [API_BASE, user]);
 
   useEffect(() => {
-    fetchQueue();
+    Promise.resolve().then(() => fetchQueue());
     const interval = setInterval(fetchQueue, 30_000);
     return () => clearInterval(interval);
   }, [fetchQueue]);
@@ -115,10 +117,12 @@ export default function StagingAreaView() {
   useEffect(() => {
     if (!lastEvent) return;
     if (lastEvent.type === 'wisdom.integrations.sync_ready') {
-      fetchQueue();
+      Promise.resolve().then(() => fetchQueue());
     }
     if (lastEvent.type === 'wisdom.integrations.item_synced') {
-      setQueue(prev => prev.filter(i => i.item_id !== lastEvent.item_id));
+      Promise.resolve().then(() => {
+        setQueue(prev => prev.filter(i => i.item_id !== lastEvent.item_id));
+      });
     }
   }, [lastEvent, fetchQueue]);
 
@@ -136,7 +140,9 @@ export default function StagingAreaView() {
         setLastRetryResult(result);
         setTimeout(fetchQueue, 2000);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to retry all items:', err);
+    }
     finally { setRetryingAll(false); }
   };
 
@@ -146,7 +152,9 @@ export default function StagingAreaView() {
     try {
       await fetch(`${API_BASE}/api/v1/integrations/retry/${itemId}`, { method: 'POST' });
       setTimeout(fetchQueue, 1500);
-    } catch {}
+    } catch (err) {
+      console.error(`Failed to retry item ${itemId}:`, err);
+    }
     finally { setRetryingItem(null); }
   };
 
@@ -155,7 +163,9 @@ export default function StagingAreaView() {
     setQueue(prev => prev.filter(i => i.item_id !== itemId));
     try {
       await fetch(`${API_BASE}/api/v1/integrations/queue/${itemId}`, { method: 'DELETE' });
-    } catch {}
+    } catch (err) {
+      console.error(`Failed to dismiss item ${itemId}:`, err);
+    }
   };
 
   const criticalItems = queue.filter(i => i.retry_count >= 10);
