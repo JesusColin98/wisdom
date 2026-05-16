@@ -87,8 +87,10 @@ export const WisdomProvider = ({ children }) => {
 
         if (token) {
           const success = await fetchUser(token);
-          if (!success && !localStorage.getItem('wisdom_token')) {
-            redirectToLogin();
+          if (!success) {
+             redirectToLogin();
+          } else {
+             setIsInitializing(false);
           }
         } else {
           redirectToLogin();
@@ -96,7 +98,6 @@ export const WisdomProvider = ({ children }) => {
       } catch (e) {
         console.error("Auth init error:", e);
         setError("System initialization failed.");
-      } finally {
         setIsInitializing(false);
       }
     };
